@@ -1,42 +1,40 @@
-name: Generate norsk feed
+name: Update Norsk Feed
 
-# Kör manuellt eller varje natt
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # Manuell start
   schedule:
-    - cron: "0 3 * * *"
-
-permissions:
-  contents: write
+    - cron: "0 2 * * *"  # Kör varje natt kl 02:00
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Check out repository
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: '3.x'
 
-      - name: Install deps
-        run: pip install requests lxml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests lxml
 
-      - name: Run feed generator
+      - name: Generate norsk-feed.xml
         run: python generate_feed.py
 
-      - name: Commit and push if changed
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          if [ -n "$(git status --porcelain)" ]; then
-            git add norsk-feed.xml
-            git commit -m "Update norsk-feed.xml"
-            git push
-          else
-            echo "No changes to commit"
-          fi
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: norsk-feed
+          path: norsk-feed.xml
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./
+          keep_files: true
