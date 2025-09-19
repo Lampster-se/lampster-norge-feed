@@ -3,34 +3,29 @@ name: Update norsk feed
 on:
   schedule:
     - cron: "0 * * * *"   # Kör varje timme
-  workflow_dispatch:      # Kör manuellt
+  workflow_dispatch:      # Kan köras manuellt
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Hämta koden
       - name: Check out repo
         uses: actions/checkout@v4
 
-      # 2. Installera Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.x"
 
-      # 3. Installera dependencies
       - name: Install dependencies
         run: |
           pip install --upgrade pip
           pip install requests lxml
 
-      # 4. Kör skriptet som genererar norsk feed
       - name: Generate norsk feed
         run: python generate_feed.py
 
-      # 5. Publicera feeden på gh-pages
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
