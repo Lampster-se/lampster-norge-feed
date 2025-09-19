@@ -1,11 +1,16 @@
 import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP
+import os
 
 # URL till originalfeeden
 SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
-OUTPUT_FILE = "norsk-feed.xml"
+OUTPUT_DIR = "lampster-norge-feed"
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 CONVERSION_RATE = Decimal("1.3375")  # SEK → NOK med påslag
+
+# Skapa mappen om den inte finns
+os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Ladda ner originalfeeden
 resp = requests.get(SOURCE_URL)
@@ -44,8 +49,8 @@ for item in orig_channel.findall("item"):
     for tag in ["g:id", "g:title", "g:description", "g:link",
                 "g:image_link", "g:availability", "g:product_type"]:
         elem = item.find(tag, ns)
-        if elem is not None and elem.text:
-            ET.SubElement(new_item, tag).text = elem.text
+        text = elem.text if elem is not None else ""
+        ET.SubElement(new_item, tag).text = text or "N/A"
 
     # Pris (konverterat)
     price_elem = item.find("g:price", ns)
@@ -58,6 +63,8 @@ for item in orig_channel.findall("item"):
             ET.SubElement(new_item, "g:price").text = f"{nok_value} NOK"
         except Exception as e:
             print(f"Fel vid pris-konvertering: {e}")
+    else:
+        ET.SubElement(new_item, "g:price").text = "0.00 NOK"
 
 # Spara till fil
 tree_out = ET.ElementTree(rss)
