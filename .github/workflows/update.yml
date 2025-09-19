@@ -2,8 +2,8 @@ name: Update norsk feed
 
 on:
   schedule:
-    - cron: "0 * * * *"   # kör varje timme
-  workflow_dispatch:      # möjliggör manuell körning
+    - cron: "0 * * * *"   # varje timme
+  workflow_dispatch:
 
 jobs:
   build:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # behövs för att kunna skapa ny branch
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,14 +29,23 @@ jobs:
         run: |
           python generate_feed.py
 
-      - name: Commit and push updated feed
+      - name: Commit and push updated feed to gh-pages
         run: |
+          # Ställ in git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout gh-pages || git checkout -b gh-pages
-          cp norsk-feed.xml norsk-feed.xml
-          git add norsk-feed.xml
+
+          # Skapa gh-pages branch om den inte finns
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+          fi
+
+          # Flytta feeden till root av gh-pages
+          mkdir -p lampster-norge-feed
+          mv -f lampster-norge-feed/norsk-feed.xml lampster-norge-feed/norsk-feed.xml
+
+          git add lampster-norge-feed/norsk-feed.xml
           git commit -m "Uppdaterad norsk feed [Automatiskt]" || echo "Inga ändringar att committa"
-          git push origin gh-pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git push origin gh-pages --force
