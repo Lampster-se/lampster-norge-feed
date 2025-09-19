@@ -28,7 +28,7 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Alla nordiska länder + frakt i SEK
+# Definiera frakt endast för länder vi faktiskt säljer till
 SHIPPING_SEK = {
     "NO": 99,
     "SE": 49,   # Sverige har lägre frakt
@@ -37,7 +37,6 @@ SHIPPING_SEK = {
     "IS": 99,
 }
 
-# Konvertera frakt till NOK och avrunda uppåt
 SHIPPING_NOK = {
     country: (Decimal(sek) * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)
     for country, sek in SHIPPING_SEK.items()
@@ -55,7 +54,6 @@ for item in orig_channel.findall("item"):
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
 
-        # Konvertera pris
         if tag == "price" and text:
             try:
                 value, currency = text.split()
@@ -70,14 +68,13 @@ for item in orig_channel.findall("item"):
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Lägg till frakt för alla nordiska länder
-    for country, price in SHIPPING_NOK.items():
+    # Lägg till frakt, men endast för de länder vi vill sälja till
+    for country in ["NO", "SE", "DK", "FI", "IS"]:
         shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
         ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = country
         ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
-        ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{price} NOK"
+        ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{SHIPPING_NOK[country]} NOK"
 
-# Spara fil
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
