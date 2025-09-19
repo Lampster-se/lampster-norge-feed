@@ -57,5 +57,4 @@ for item in orig_channel.findall("item"):
 
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
-
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
