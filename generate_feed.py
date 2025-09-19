@@ -49,21 +49,25 @@ for item in orig_channel.findall("item"):
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
 
-        if tag == "price" and text:
-            try:
-                value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                )
-                text = f"{nok_value} NOK"
-            except Exception as e:
-                print(f"Fel vid pris-konvertering: {e}")
+        # Konvertera pris till NOK
+        if tag == "price":
+            if text:
+                try:
+                    value, currency = text.split()
+                    nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
+                        Decimal("0.01"), rounding=ROUND_HALF_UP
+                    )
+                    text = f"{nok_value} NOK"
+                except Exception as e:
+                    print(f"Fel vid pris-konvertering: {e}")
+                    text = "0.00 NOK"
+            else:
                 text = "0.00 NOK"
-        elif tag == "price" and not text:
-            text = "0.00 NOK"
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
 # Spara till fil
 tree_out = ET.ElementTree(rss)
-tree_out.write(OUTPUT_FILE, encoding="utf-8", xm
+tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
+
+print(f"Klar! Fil sparad som {OUTPUT_FILE}")
