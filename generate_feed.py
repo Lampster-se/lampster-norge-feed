@@ -1,35 +1,22 @@
-name: Generate norsk feed
+import requests
+from lxml import etree
 
-on:
-  schedule:
-    - cron: "0 3 * * *"   # kör varje natt kl 03:00
-  workflow_dispatch:       # så du kan köra manuellt från GitHub också
-  push:
-    branches:
-      - main
+URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
+FAKTOR = 1.3375
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+response = requests.get(URL)
+tree = etree.fromstring(response.content)
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
+ns = {"g": "http://base.google.com/ns/1.0"}
 
-      - name: Install dependencies
-        run: pip install requests lxml
+for item in tree.xpath("//item"):
+    price_elem = item.find("g:price", ns)
+    if price_elem is not None:
+        price_text = price_elem.text.split(" ")[0]
+        currency = price_elem.text.split(" ")[1]
+        sek_price = float(price_text.replace(",", "."))
+        nok_price = round(sek_price * FAKTOR, 2)
+        price_elem.text = f"{nok_price} NOK"
 
-      - name: Run script
-        run: python generate_feed.py
-
-      - name: Commit and push feed
-        run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add norsk-feed.xml
-          git commit -m "Update norsk feed"
-          git push
+with open("norsk-feed.xml", "wb") as f:
+    f.write(etree.tostring(tree, pretty_print=True, encoding="UTF-8"))
