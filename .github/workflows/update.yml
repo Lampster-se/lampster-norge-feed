@@ -3,7 +3,7 @@ name: Update norsk feed
 on:
   schedule:
     - cron: "0 * * * *"   # kör varje timme
-  workflow_dispatch:      # gör att du kan köra manuellt från Actions
+  workflow_dispatch:      # möjliggör manuell körning
 
 jobs:
   build:
@@ -27,16 +27,14 @@ jobs:
         run: |
           python generate_feed.py
 
-      - name: Upload feed as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: norsk-feed
-          path: norsk-feed.xml
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./
-          publish_branch: gh-pages
-          keep_files: true
+      - name: Commit and push updated feed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout gh-pages || git checkout -b gh-pages
+          cp norsk-feed.xml norsk-feed.xml
+          git add norsk-feed.xml
+          git commit -m "Uppdaterad norsk feed [Automatiskt]" || echo "Inga ändringar att committa"
+          git push origin gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
