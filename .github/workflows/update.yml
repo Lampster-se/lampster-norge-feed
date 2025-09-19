@@ -2,7 +2,7 @@ name: Update norsk feed
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"  # kör varje timme
   workflow_dispatch:
 
 jobs:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repo
+      - name: Check out repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -28,13 +28,24 @@ jobs:
       - name: Generate norsk feed
         run: python generate_feed.py
 
-      - name: Commit and push feed to gh-pages
-        uses: stefanzweifel/git-auto-commit-action@v4
-        with:
-          commit_message: "Uppdaterad norsk feed [Automatiskt]"
-          branch: gh-pages
-          file_pattern: "lampster-norge-feed/norsk-feed.xml"
-          commit_user_name: github-actions[bot]
-          commit_user_email: github-actions[bot]@users.noreply.github.com
-          push_options: "--set-upstream"
-          commit_options: "--allow-empty"
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Push to gh-pages branch
+        run: |
+          # Skapa gh-pages branch om den inte finns
+          if git show-ref --verify --quiet refs/heads/gh-pages; then
+            git checkout gh-pages
+          else
+            git checkout --orphan gh-pages
+            git rm -rf .
+          fi
+
+          # Lägg till filen
+          git add lampster-norge-feed/norsk-feed.xml
+
+          # Commit och push
+          git commit -m "Uppdaterad norsk feed [Automatiskt]" || echo "Inga ändringar att committa"
+          git push "https://${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages
