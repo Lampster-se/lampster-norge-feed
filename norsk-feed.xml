@@ -16,6 +16,16 @@
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
       </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200003775-200001646</g:id>
@@ -30,6 +40,16 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -46,6 +66,16 @@
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
       </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002559</g:id>
@@ -60,6 +90,16 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -76,6 +116,16 @@
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
       </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200001301</g:id>
@@ -90,6 +140,16 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -106,6 +166,16 @@
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
       </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002357</g:id>
@@ -120,6 +190,16 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -136,6 +216,16 @@
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
       </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200000345</g:id>
@@ -150,6 +240,16 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -166,6 +266,16 @@
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
       </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200003635</g:id>
@@ -180,6 +290,16 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>SE</g:country>
+        <g:service>Standard</g:service>
+        <g:price>66 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>DK</g:country>
+        <g:service>Standard</g:service>
+        <g:price>79 NOK</g:price>
       </g:shipping>
     </item>
   </channel>
