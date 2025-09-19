@@ -7,6 +7,7 @@ SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 CONVERSION_RATE = Decimal("1.3375")  # SEK → NOK
+SEK_SHIPPING_NO = 99
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
@@ -28,9 +29,8 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Endast Norge
-SEK_SHIPPING_NO = 99
-NOK_SHIPPING_NO = (Decimal(SEK_SHIPPING_NO) * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)
+# Konvertera frakt
+NOK_SHIPPING_NO = (Decimal(SEK_SHIPPING_NO) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
@@ -47,22 +47,20 @@ for item in orig_channel.findall("item"):
         if tag == "price" and text:
             try:
                 value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                )
-                text = f"{nok_value} NOK"
+                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                text = f"{nok_value:.2f} NOK"
             except:
-                text = "0.00 NOK"
+                text = f"{NOK_SHIPPING_NO:.2f} NOK"
         elif tag == "price":
-            text = "0.00 NOK"
+            text = f"{NOK_SHIPPING_NO:.2f} NOK"
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Lägg till frakt endast för Norge
+    # Lägg till frakt korrekt formaterad
     shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{NOK_SHIPPING_NO} NOK"
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{NOK_SHIPPING_NO:.2f} NOK"
 
 # Spara fil
 tree_out = ET.ElementTree(rss)
