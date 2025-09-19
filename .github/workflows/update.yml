@@ -13,7 +13,7 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # behövs för att kunna skapa ny branch
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -31,21 +31,20 @@ jobs:
 
       - name: Commit and push updated feed to gh-pages
         run: |
-          # Ställ in git
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Skapa gh-pages branch om den inte finns
+          # Byt till gh-pages branch, skapa om den inte finns
           if git show-ref --verify --quiet refs/heads/gh-pages; then
             git checkout gh-pages
           else
             git checkout --orphan gh-pages
+            git rm -rf .
           fi
 
-          # Flytta feeden till root av gh-pages
-          mkdir -p lampster-norge-feed
-          mv -f lampster-norge-feed/norsk-feed.xml lampster-norge-feed/norsk-feed.xml
-
+          # Lägg till mappen lampster-norge-feed med filen
           git add lampster-norge-feed/norsk-feed.xml
+
+          # Commit och push
           git commit -m "Uppdaterad norsk feed [Automatiskt]" || echo "Inga ändringar att committa"
           git push origin gh-pages --force
