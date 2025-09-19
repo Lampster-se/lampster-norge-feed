@@ -2,7 +2,6 @@ import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP
 import os
-import math
 
 SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
@@ -29,15 +28,15 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Frakt: 99 SEK → 133 NOK
-SEK_SHIPPING = Decimal("99")
-NOK_SHIPPING = (SEK_SHIPPING * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)  # rundar till heltal
-
-DEFAULT_SHIPPING = {
-    "country": "NO",
-    "service": "Standard",
-    "price": f"{NOK_SHIPPING} NOK"
+# Fraktkostnader per land (SEK → NOK)
+SHIPPING_SEK = {
+    "NO": 99,
+    "SE": 49,  # exempel: Sverige
+    "DK": 59,  # exempel: Danmark
 }
+
+SHIPPING_NOK = {country: (Decimal(sek) * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)
+                for country, sek in SHIPPING_SEK.items()}
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
@@ -52,25 +51,26 @@ for item in orig_channel.findall("item"):
         text = elem.text if elem is not None else None
 
         # Konvertera pris
-        if tag == "price":
-            if text:
-                try:
-                    value, currency = text.split()
-                    nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
-                        Decimal("0.01"), rounding=ROUND_HALF_UP
-                    )
-                    text = f"{nok_value} NOK"
-                except:
-                    text = "0.00 NOK"
-            else:
+        if tag == "price" and text:
+            try:
+                value, currency = text.split()
+                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+                text = f"{nok_value} NOK"
+            except:
                 text = "0.00 NOK"
+        elif tag == "price":
+            text = "0.00 NOK"
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Lägg till fraktinformation
-    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
-    for key, value in DEFAULT_SHIPPING.items():
-        ET.SubElement(shipping_elem, f"{{{G_NS}}}{key}").text = value
+    # Lägg till frakt per land
+    for country, price in SHIPPING_NOK.items():
+        shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
+        ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = country
+        ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
+        ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{price} NOK"
 
 # Spara fil
 tree_out = ET.ElementTree(rss)
