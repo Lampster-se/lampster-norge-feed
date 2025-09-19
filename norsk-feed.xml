@@ -24,7 +24,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -49,7 +59,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -74,7 +94,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -99,7 +129,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -124,7 +164,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -149,7 +199,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -174,7 +234,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -199,7 +269,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -224,7 +304,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -249,7 +339,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -274,7 +374,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
     <item>
@@ -299,7 +409,17 @@
       <g:shipping>
         <g:country>DK</g:country>
         <g:service>Standard</g:service>
-        <g:price>79 NOK</g:price>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>FI</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
+      <g:shipping>
+        <g:country>IS</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
       </g:shipping>
     </item>
   </channel>
