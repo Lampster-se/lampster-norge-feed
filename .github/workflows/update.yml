@@ -2,7 +2,7 @@ name: Update norsk feed
 
 on:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"  # kör varje timme
   workflow_dispatch:
 
 jobs:
@@ -29,7 +29,8 @@ jobs:
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Viktigt: använd ditt PAT som secret
+          github_token: ${{ secrets.PERSONAL_TOKEN }}
           publish_dir: ./lampster-norge-feed
           publish_branch: gh-pages
           keep_files: true
