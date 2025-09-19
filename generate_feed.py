@@ -24,9 +24,7 @@ tree = ET.fromstring(resp.content, parser=parser)
 ns = {"g": "http://base.google.com/ns/1.0"}
 
 # Skapa ny RSS-root
-rss = ET.Element("rss", {
-    "version": "2.0",
-    "xmlns:g": "http://base.google.com/ns/1.0"
+rss = ET.Element("rss", version="2.0", nsmap={"g": "http://base.google.com/ns/1.0"})
 })
 channel = ET.SubElement(rss, "channel")
 
