@@ -11,6 +11,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Övrigt &gt; Norsk</g:product_type>
       <g:price>1456.54 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200003775-200001646</g:id>
@@ -21,6 +26,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Övrigt &gt; Norsk</g:product_type>
       <g:price>1456.54 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200003516</g:id>
@@ -31,6 +41,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Pannlampor &gt; Paketerbjudanden &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>1911.29 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002559</g:id>
@@ -41,6 +56,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>2406.16 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002312</g:id>
@@ -51,6 +71,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Pannlampor &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>1857.79 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200001301</g:id>
@@ -61,6 +86,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Kikare &gt; Nattkikare &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>2672.33 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200001097</g:id>
@@ -71,6 +101,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Kikare &gt; Nattkikare &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>2267.06 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002357</g:id>
@@ -81,6 +116,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>933.58 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002364</g:id>
@@ -91,6 +131,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Pannlampor &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>560.41 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200000345</g:id>
@@ -101,6 +146,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Pannlampor &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>1068.66 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200002444</g:id>
@@ -111,6 +161,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Lampor &gt; Pannlampor &gt; Populärt &gt; Norsk</g:product_type>
       <g:price>627.29 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
     <item>
       <g:id>200003635</g:id>
@@ -121,6 +176,11 @@
       <g:availability>in stock</g:availability>
       <g:product_type>Övrigt &gt; Norsk</g:product_type>
       <g:price>1190.38 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132 NOK</g:price>
+      </g:shipping>
     </item>
   </channel>
 </rss>
