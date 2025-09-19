@@ -20,51 +20,50 @@ resp.raise_for_status()
 parser = ET.XMLParser(recover=True)
 tree = ET.fromstring(resp.content, parser=parser)
 
-# Namnrymder
-ns = {"g": "http://base.google.com/ns/1.0"}
+# Namespace
+G_NS = "http://base.google.com/ns/1.0"
+ns = {"g": G_NS}
 
-# Skapa ny RSS-root
-rss = ET.Element("rss", version="2.0", nsmap={"g": "http://base.google.com/ns/1.0"})
+# Skapa ny RSS-root med namespace
+rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
 channel = ET.SubElement(rss, "channel")
 
 # Kopiera över channel-info från originalet
 orig_channel = tree.find("channel")
 for tag in ["title", "link", "description"]:
     elem = orig_channel.find(tag)
-    if elem is not None:
+    if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
 # Gå igenom alla produkter
 for item in orig_channel.findall("item"):
-    product_type = item.find("g:product_type", ns)
-    if product_type is None or "Norsk" not in (product_type.text or ""):
+    product_type_elem = item.find("g:product_type", ns)
+    if product_type_elem is None or "Norsk" not in (product_type_elem.text or ""):
         continue  # hoppa över om inte norsk kategori
 
     new_item = ET.SubElement(channel, "item")
 
     # Kopiera över viktiga fält
-    for tag in ["g:id", "g:title", "g:description", "g:link",
-                "g:image_link", "g:availability", "g:product_type"]:
-        elem = item.find(tag, ns)
-        text = elem.text if elem is not None else ""
-        ET.SubElement(new_item, tag).text = text or "N/A"
+    for tag in ["id", "title", "description", "link",
+                "image_link", "availability", "product_type", "price"]:
+        elem = item.find(f"g:{tag}", ns)
+        text = elem.text if elem is not None else None
 
-    # Pris (konverterat)
-    price_elem = item.find("g:price", ns)
-    if price_elem is not None and price_elem.text:
-        try:
-            value, currency = price_elem.text.split()
-            nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
-                Decimal("0.01"), rounding=ROUND_HALF_UP
-            )
-            ET.SubElement(new_item, "g:price").text = f"{nok_value} NOK"
-        except Exception as e:
-            print(f"Fel vid pris-konvertering: {e}")
-    else:
-        ET.SubElement(new_item, "g:price").text = "0.00 NOK"
+        if tag == "price" and text:
+            try:
+                value, currency = text.split()
+                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
+                text = f"{nok_value} NOK"
+            except Exception as e:
+                print(f"Fel vid pris-konvertering: {e}")
+                text = "0.00 NOK"
+        elif tag == "price" and not text:
+            text = "0.00 NOK"
+
+        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
 # Spara till fil
 tree_out = ET.ElementTree(rss)
-tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
-
-print(f"Klar! Fil sparad som {OUTPUT_FILE}")
+tree_out.write(OUTPUT_FILE, encoding="utf-8", xm
