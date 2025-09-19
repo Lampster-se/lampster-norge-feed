@@ -31,7 +31,7 @@ for tag in ["title", "link", "description"]:
 
 # Frakt: 99 SEK → 133 NOK
 SEK_SHIPPING = Decimal("99")
-NOK_SHIPPING = math.ceil(SEK_SHIPPING * float(CONVERSION_RATE))
+NOK_SHIPPING = (SEK_SHIPPING * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)  # rundar till heltal
 
 DEFAULT_SHIPPING = {
     "country": "NO",
