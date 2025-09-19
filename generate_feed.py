@@ -28,15 +28,20 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Fraktkostnader per land (SEK → NOK)
+# Alla nordiska länder + frakt i SEK
 SHIPPING_SEK = {
     "NO": 99,
-    "SE": 49,  # exempel: Sverige
-    "DK": 59,  # exempel: Danmark
+    "SE": 49,   # Sverige har lägre frakt
+    "DK": 99,
+    "FI": 99,
+    "IS": 99,
 }
 
-SHIPPING_NOK = {country: (Decimal(sek) * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)
-                for country, sek in SHIPPING_SEK.items()}
+# Konvertera frakt till NOK och avrunda uppåt
+SHIPPING_NOK = {
+    country: (Decimal(sek) * CONVERSION_RATE).to_integral_value(rounding=ROUND_HALF_UP)
+    for country, sek in SHIPPING_SEK.items()
+}
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
@@ -65,7 +70,7 @@ for item in orig_channel.findall("item"):
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Lägg till frakt per land
+    # Lägg till frakt för alla nordiska länder
     for country, price in SHIPPING_NOK.items():
         shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
         ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = country
