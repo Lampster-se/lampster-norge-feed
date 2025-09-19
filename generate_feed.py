@@ -1,91 +1,66 @@
 import requests
 import lxml.etree as ET
+from decimal import Decimal, ROUND_HALF_UP
 
-# Originalfeed (Webnode)
-SOURCE_FEED = "https://www.lampster.se/rss/pf-google_nok-no.xml"
-# Utfil som ska publiceras på GitHub Pages
+# URL till originalfeeden
+SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_FILE = "norsk-feed.xml"
+CONVERSION_RATE = Decimal("1.3375")  # SEK → NOK med påslag
 
-# Valutakonvertering SEK -> NOK
-CONVERSION_RATE = 1.3375
+# Ladda ner originalfeeden
+resp = requests.get(SOURCE_URL)
+resp.raise_for_status()
 
-def main():
-    # Hämta originalfeed
-    resp = requests.get(SOURCE_FEED)
-    resp.raise_for_status()
-    xml = ET.fromstring(resp.content)
+# Parse XML
+parser = ET.XMLParser(recover=True)
+tree = ET.fromstring(resp.content, parser=parser)
 
-    # Namespacehantering (Webnode använder ns0 istället för g ibland)
-    ns = {"g": "http://base.google.com/ns/1.0"}
+# Namnrymder
+ns = {"g": "http://base.google.com/ns/1.0"}
 
-    # Skapa nytt RSS-dokument
-    rss = ET.Element("rss", version="2.0", nsmap={"g": "http://base.google.com/ns/1.0"})
-    channel = ET.SubElement(rss, "channel")
+# Skapa ny RSS-root
+rss = ET.Element("rss", {
+    "version": "2.0",
+    "xmlns:g": "http://base.google.com/ns/1.0"
+})
+channel = ET.SubElement(rss, "channel")
 
-    # Kopiera över huvudinfo från originalet
-    for tag in ["title", "link", "description"]:
-        el = xml.find(f"./channel/{tag}")
-        if el is not None:
-            ET.SubElement(channel, tag).text = el.text
+# Kopiera över channel-info från originalet
+orig_channel = tree.find("channel")
+for tag in ["title", "link", "description"]:
+    elem = orig_channel.find(tag)
+    if elem is not None:
+        ET.SubElement(channel, tag).text = elem.text
 
-    # Gå igenom alla produkter
-    for item in xml.findall("./channel/item"):
-        new_item = ET.SubElement(channel, "item")
+# Gå igenom alla produkter
+for item in orig_channel.findall("item"):
+    product_type = item.find("g:product_type", ns)
+    if product_type is None or "Norsk" not in (product_type.text or ""):
+        continue  # hoppa över om inte norsk kategori
 
-        # id
-        gid = item.find("g:id", ns)
-        if gid is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}id").text = gid.text
-            mpn = ET.SubElement(new_item, "{http://base.google.com/ns/1.0}mpn")
-            mpn.text = gid.text
+    new_item = ET.SubElement(channel, "item")
 
-        # title
-        title = item.find("title")
-        if title is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}title").text = title.text
+    # Kopiera över viktiga fält
+    for tag in ["g:id", "g:title", "g:description", "g:link",
+                "g:image_link", "g:availability", "g:product_type"]:
+        elem = item.find(tag, ns)
+        if elem is not None and elem.text:
+            ET.SubElement(new_item, tag).text = elem.text
 
-        # description
-        desc = item.find("description")
-        if desc is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}description").text = desc.text
+    # Pris (konverterat)
+    price_elem = item.find("g:price", ns)
+    if price_elem is not None and price_elem.text:
+        try:
+            value, currency = price_elem.text.split()
+            nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+            ET.SubElement(new_item, "g:price").text = f"{nok_value} NOK"
+        except Exception as e:
+            print(f"Fel vid pris-konvertering: {e}")
 
-        # link
-        link = item.find("link")
-        if link is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}link").text = link.text
+# Spara till fil
+tree_out = ET.ElementTree(rss)
+tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 
-        # image_link
-        img = item.find("g:image_link", ns)
-        if img is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}image_link").text = img.text
-
-        # availability
-        avail = item.find("g:availability", ns)
-        if avail is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}availability").text = avail.text
-
-        # product_type
-        ptype = item.find("g:product_type", ns)
-        if ptype is not None:
-            ET.SubElement(new_item, "{http://base.google.com/ns/1.0}product_type").text = ptype.text
-
-        # price (konverterad till NOK)
-        price = item.find("g:price", ns)
-        if price is not None:
-            try:
-                amount, currency = price.text.split()
-                nok_price = float(amount) * CONVERSION_RATE
-                ET.SubElement(new_item, "{http://base.google.com/ns/1.0}price").text = f"{nok_price:.2f} NOK"
-            except Exception as e:
-                print("Kunde inte konvertera pris:", e)
-
-        # Extra fält
-        ET.SubElement(new_item, "{http://base.google.com/ns/1.0}condition").text = "new"
-        ET.SubElement(new_item, "{http://base.google.com/ns/1.0}brand").text = "Lampster"
-
-    # Spara fil
-    tree = ET.ElementTree(rss)
-    tree.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
-
-if __name__ == "__main__":
-    main()
+print(f"Klar! Fil sparad som {OUTPUT_FILE}")
