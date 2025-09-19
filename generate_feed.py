@@ -2,39 +2,43 @@ import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP
 import os
+import math
 
-# Källa feed
 SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 CONVERSION_RATE = Decimal("1.3375")  # SEK → NOK
 
-# Skapa mapp om den inte finns
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta feed
 resp = requests.get(SOURCE_URL)
 resp.raise_for_status()
 
-# Parse XML
 parser = ET.XMLParser(recover=True)
 tree = ET.fromstring(resp.content, parser=parser)
 
 G_NS = "http://base.google.com/ns/1.0"
 ns = {"g": G_NS}
 
-# Ny RSS
 rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
 channel = ET.SubElement(rss, "channel")
 
-# Kopiera channel-info
 orig_channel = tree.find("channel")
 for tag in ["title", "link", "description"]:
     elem = orig_channel.find(tag)
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Loop över produkter
+# Frakt: 99 SEK → 133 NOK
+SEK_SHIPPING = Decimal("99")
+NOK_SHIPPING = math.ceil(SEK_SHIPPING * float(CONVERSION_RATE))
+
+DEFAULT_SHIPPING = {
+    "country": "NO",
+    "service": "Standard",
+    "price": f"{NOK_SHIPPING} NOK"
+}
+
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
     if product_type_elem is None or "Norsk" not in (product_type_elem.text or ""):
@@ -62,6 +66,11 @@ for item in orig_channel.findall("item"):
                 text = "0.00 NOK"
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
+
+    # Lägg till fraktinformation
+    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
+    for key, value in DEFAULT_SHIPPING.items():
+        ET.SubElement(shipping_elem, f"{{{G_NS}}}{key}").text = value
 
 # Spara fil
 tree_out = ET.ElementTree(rss)
