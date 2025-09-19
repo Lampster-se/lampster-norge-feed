@@ -1,51 +1,35 @@
-import requests
-import xml.etree.ElementTree as ET
+name: Generate norsk feed
 
-# Din norska feed från Webnode
-URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
+on:
+  schedule:
+    - cron: "0 3 * * *"   # kör varje natt kl 03:00
+  workflow_dispatch:       # så du kan köra manuellt från GitHub också
+  push:
+    branches:
+      - main
 
-# Hämta feed
-r = requests.get(URL)
-r.raise_for_status()
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-root = ET.fromstring(r.content)
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-# Namespace fix
-ns = {"g": "http://base.google.com/ns/1.0"}
+      - name: Install dependencies
+        run: pip install requests lxml
 
-# Bygg ny RSS
-rss = ET.Element("rss", {
-    "xmlns:g": "http://base.google.com/ns/1.0",
-    "version": "2.0"
-})
-channel = ET.SubElement(rss, "channel")
+      - name: Run script
+        run: python generate_feed.py
 
-for item in root.findall(".//item"):
-    # Bara produkter märkta "Norsk"
-    pt = item.find("g:product_type", ns)
-    if pt is None or "Norsk" not in pt.text:
-        continue
-
-    new_item = ET.SubElement(channel, "item")
-
-    # Kopiera id, titel, beskrivning, etc.
-    for tag in ["id", "title", "description", "link", "image_link", "availability", "brand", "gtin"]:
-        el = item.find(f"g:{tag}", ns)
-        if el is not None:
-            new = ET.SubElement(new_item, f"g:{tag}")
-            new.text = el.text
-
-    # Pris konvertering SEK -> NOK (med 1,3375 påslag)
-    price = item.find("g:price", ns)
-    if price is not None:
-        try:
-            value, currency = price.text.split()
-            sek = float(value)
-            nok = round(sek * 1.3375, 2)
-            new_price = ET.SubElement(new_item, "g:price")
-            new_price.text = f"{nok} NOK"
-        except Exception as e:
-            print("Kunde inte konvertera pris:", price.text, e)
-
-# Skriv fil
-ET.ElementTree(rss).write("norsk-feed.xml", encoding="utf-8", xml_declaration=True)
+      - name: Commit and push feed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add norsk-feed.xml
+          git commit -m "Update norsk feed"
+          git push
