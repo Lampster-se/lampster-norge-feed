@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 import time
 
-# Live-feed med cache-busting
+# Live-feed med cache-bust
 SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cache_bust={int(time.time())}"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
@@ -13,6 +13,10 @@ STANDARD_SEK_SHIPPING = 99
 FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# Ta bort gammal feed om den finns
+if os.path.exists(OUTPUT_FILE):
+    os.remove(OUTPUT_FILE)
 
 # Hämta live feed
 resp = requests.get(SOURCE_URL)
@@ -33,11 +37,13 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Standardfrakt i NOK
+all_items = orig_channel.findall("item")
+print(f"Antal produkter i live-feed: {len(all_items)}")
+
+# Konvertera standardfrakt
 NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-# Filtrera och lägg till produkter
-for item in orig_channel.findall("item"):
+for item in all_items:
     product_type_elem = item.find("g:product_type", ns)
     text_product_type = (product_type_elem.text or "").lower() if product_type_elem is not None else ""
     if "norsk" not in text_product_type:
