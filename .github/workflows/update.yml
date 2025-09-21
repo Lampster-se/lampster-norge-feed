@@ -23,6 +23,9 @@ jobs:
           pip install --upgrade pip
           pip install requests lxml
 
+      - name: Remove cached feed
+        run: rm -f ./lampster-norge-feed/norsk-feed.xml
+
       - name: Generate norsk feed
         run: python generate_feed.py
 
@@ -32,4 +35,4 @@ jobs:
           github_token: ${{ secrets.PERSONAL_TOKEN }}
           publish_dir: ./lampster-norge-feed
           publish_branch: gh-pages
-          keep_files: false  # Force replace all files to undvika cache
+          keep_files: true
