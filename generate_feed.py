@@ -12,8 +12,13 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta live feed från Webnode utan cache
-headers = {"Cache-Control": "no-cache"}
+# Hämta live feed med headers som tvingar Webnode att ge senaste
+headers = {
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    "Pragma": "no-cache",
+    "Expires": "0",
+    "User-Agent": "Mozilla/5.0"
+}
 resp = requests.get(SOURCE_URL, headers=headers)
 resp.raise_for_status()
 print(f"Fetched {len(resp.content)} bytes from {SOURCE_URL}")
@@ -33,18 +38,21 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-# Konvertera standardfrakt
 NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+count_total = 0
+count_norsk = 0
+
 for item in orig_channel.findall("item"):
+    count_total += 1
     product_type_elem = item.find("g:product_type", ns)
     text_product_type = (product_type_elem.text or "").lower() if product_type_elem is not None else ""
     if "norsk" not in text_product_type:
         continue
 
+    count_norsk += 1
     new_item = ET.SubElement(channel, "item")
 
-    # Kopiera fält och konvertera pris
     for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
@@ -71,15 +79,14 @@ for item in orig_channel.findall("item"):
     shipping_price = Decimal("0.00") if price_value >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
     ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
 
-    # Hanteringstid 0-1 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
-
-    # Leveranstid 1-9 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
 
-# Spara fil
+print(f"Total produkter i feed: {count_total}")
+print(f"Produkter med Norsk: {count_norsk}")
+
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
