@@ -75,33 +75,12 @@ for item in orig_channel.findall("item"):
 
     # Leveranstid 1-9 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"  # ✅ här var tidigare tex-felet
 
 # Spara fil
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
-G_NS = "http://base.google.com/ns/1.0"
-ns = {"g": G_NS}
-
-rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
-channel = ET.SubElement(rss, "channel")
-
-orig_channel = tree.find("channel")
-for tag in ["title", "link", "description"]:
-    elem = orig_channel.find(tag)
-    if elem is not None and elem.text:
-        ET.SubElement(channel, tag).text = elem.text
-
-# Konvertera standardfrakt
-NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-for item in orig_channel.findall("item"):
-    product_type_elem = item.find("g:product_type", ns)
-    text_product_type = (product_type_elem.text or "").lower() if product_type_elem is not None else ""
-    if "norsk" not in text_product_type:
-        continue
-
     new_item = ET.SubElement(channel, "item")
 
     # Kopiera fält och konvertera pris
