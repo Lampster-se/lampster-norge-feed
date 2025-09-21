@@ -3,7 +3,7 @@ name: Update norsk feed
 on:
   schedule:
     - cron: "0 * * * *"   # Kör varje timme
-  workflow_dispatch:
+  workflow_dispatch:      # Kan köras manuellt
 
 jobs:
   build:
