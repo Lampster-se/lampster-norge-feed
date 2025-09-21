@@ -85,18 +85,3 @@ for item in orig_channel.findall("item"):
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
-
-    price_elem = new_item.find(f"{{{G_NS}}}price")
-    price_value = Decimal(price_elem.text.split()[0])
-    shipping_price = Decimal("0.00") if price_value >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
-
-    # Hanteringstid 0-1 arbetsdagar
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
-
-    # Leveranstid 1-9 arbetsdagar
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").tex
