@@ -41,6 +41,25 @@
       </g:shipping>
     </item>
     <item>
+      <g:id>200001867</g:id>
+      <g:title>N/A</g:title>
+      <g:description>N/A</g:description>
+      <g:link>N/A</g:link>
+      <g:image_link>https://a0b57b3acd.clvaw-cdnwnd.com/eb180ef0aec7e5106d478018e30d100b/200002395-1e9441e948/Polish_20230711_154756013-7.jpeg?ph=a0b57b3acd</g:image_link>
+      <g:availability>in stock</g:availability>
+      <g:product_type>Övrigt &gt; Populärt &gt; Norsk</g:product_type>
+      <g:price>662.06 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132.41 NOK</g:price>
+        <g:min_handling_time>0</g:min_handling_time>
+        <g:max_handling_time>1</g:max_handling_time>
+        <g:min_transit_time>1</g:min_transit_time>
+        <g:max_transit_time>9</g:max_transit_time>
+      </g:shipping>
+    </item>
+    <item>
       <g:id>200003516</g:id>
       <g:title>N/A</g:title>
       <g:description>N/A</g:description>
@@ -243,6 +262,25 @@
         <g:country>NO</g:country>
         <g:service>Standard</g:service>
         <g:price>132.41 NOK</g:price>
+        <g:min_handling_time>0</g:min_handling_time>
+        <g:max_handling_time>1</g:max_handling_time>
+        <g:min_transit_time>1</g:min_transit_time>
+        <g:max_transit_time>9</g:max_transit_time>
+      </g:shipping>
+    </item>
+    <item>
+      <g:id>200002950</g:id>
+      <g:title>N/A</g:title>
+      <g:description>N/A</g:description>
+      <g:link>N/A</g:link>
+      <g:image_link>https://a0b57b3acd.clvaw-cdnwnd.com/eb180ef0aec7e5106d478018e30d100b/200003711-2e73d2e73f/Polish_20240227_200637913.jpeg?ph=a0b57b3acd</g:image_link>
+      <g:availability>in stock</g:availability>
+      <g:product_type>Övrigt &gt; Norsk</g:product_type>
+      <g:price>2260.38 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>0.00 NOK</g:price>
         <g:min_handling_time>0</g:min_handling_time>
         <g:max_handling_time>1</g:max_handling_time>
         <g:min_transit_time>1</g:min_transit_time>
