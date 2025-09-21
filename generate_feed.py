@@ -12,9 +12,11 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta live feed
-resp = requests.get(SOURCE_URL)
+# Hämta live feed från Webnode utan cache
+headers = {"Cache-Control": "no-cache"}
+resp = requests.get(SOURCE_URL, headers=headers)
 resp.raise_for_status()
+print(f"Fetched {len(resp.content)} bytes from {SOURCE_URL}")
 
 parser = ET.XMLParser(recover=True)
 tree = ET.fromstring(resp.content, parser=parser)
@@ -32,9 +34,7 @@ for tag in ["title", "link", "description"]:
         ET.SubElement(channel, tag).text = elem.text
 
 # Konvertera standardfrakt
-NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(
-    Decimal("0.01"), rounding=ROUND_HALF_UP
-)
+NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
@@ -52,9 +52,7 @@ for item in orig_channel.findall("item"):
         if tag == "price" and text:
             try:
                 value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
-                    Decimal("0.01"), rounding=ROUND_HALF_UP
-                )
+                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
                 text = f"{nok_value:.2f} NOK"
             except:
                 text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
