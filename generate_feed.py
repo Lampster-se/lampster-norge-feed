@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 import time
 
-# URL med cache-bust för att alltid hämta live-feed
+# Live-feed med cache-bust så GitHub Actions alltid hämtar senaste version
 SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cache_bust={int(time.time())}"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
@@ -62,7 +62,7 @@ for item in orig_channel.findall("item"):
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Frakt och tider
+    # Frakt
     shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
@@ -80,7 +80,6 @@ for item in orig_channel.findall("item"):
 
     count_added += 1
 
-# Spara fil
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! {count_added} produkter sparade i {OUTPUT_FILE}")
