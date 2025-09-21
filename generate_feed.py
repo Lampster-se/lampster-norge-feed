@@ -4,21 +4,18 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 import time
 
-# Live-feed med cache-bust
+# Live-feed från Webnode med cache-bust
 SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cache_bust={int(time.time())}"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
+
 CONVERSION_RATE = Decimal("1.3375")  # SEK → NOK
 STANDARD_SEK_SHIPPING = 99
 FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Ta bort gammal feed om den finns
-if os.path.exists(OUTPUT_FILE):
-    os.remove(OUTPUT_FILE)
-
-# Hämta live feed
+# Hämta feed
 resp = requests.get(SOURCE_URL)
 resp.raise_for_status()
 
@@ -37,14 +34,10 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-all_items = orig_channel.findall("item")
-print(f"Totalt antal produkter i live-feed: {len(all_items)}")
-
-# Konvertera standardfrakt
 NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 count_added = 0
-for item in all_items:
+for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
     text_product_type = (product_type_elem.text or "").lower() if product_type_elem is not None else ""
     if "norsk" not in text_product_type:
@@ -52,7 +45,7 @@ for item in all_items:
 
     new_item = ET.SubElement(channel, "item")
 
-    # Kopiera fält och konvertera pris
+    # Kopiera och konvertera pris
     for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
@@ -69,7 +62,7 @@ for item in all_items:
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Frakt
+    # Frakt och tider
     shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
@@ -79,11 +72,9 @@ for item in all_items:
     shipping_price = Decimal("0.00") if price_value >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
     ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
 
-    # Hanteringstid 0-1 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
 
-    # Leveranstid 1-9 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
 
