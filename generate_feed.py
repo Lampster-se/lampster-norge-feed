@@ -38,11 +38,12 @@ for tag in ["title", "link", "description"]:
         ET.SubElement(channel, tag).text = elem.text
 
 all_items = orig_channel.findall("item")
-print(f"Antal produkter i live-feed: {len(all_items)}")
+print(f"Totalt antal produkter i live-feed: {len(all_items)}")
 
 # Konvertera standardfrakt
 NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
+count_added = 0
 for item in all_items:
     product_type_elem = item.find("g:product_type", ns)
     text_product_type = (product_type_elem.text or "").lower() if product_type_elem is not None else ""
@@ -86,7 +87,9 @@ for item in all_items:
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
 
+    count_added += 1
+
 # Spara fil
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
-print(f"Klar! Fil sparad som {OUTPUT_FILE}")
+print(f"Klar! {count_added} produkter sparade i {OUTPUT_FILE}")
