@@ -2,7 +2,7 @@ name: Update norsk feed
 
 on:
   schedule:
-    - cron: "0 * * * *"   # Kör varje timme
+    - cron: "0 * * * *"  # Kör varje timme
   workflow_dispatch:      # Kan köras manuellt
 
 jobs:
@@ -32,4 +32,4 @@ jobs:
           github_token: ${{ secrets.PERSONAL_TOKEN }}
           publish_dir: ./lampster-norge-feed
           publish_branch: gh-pages
-          keep_files: true
+          keep_files: false
