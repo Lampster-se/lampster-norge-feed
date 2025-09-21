@@ -37,7 +37,7 @@ NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quant
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
-    if product_type_elem is None or "Norsk" not in (product_type_elem.text or ""):
+    if product_type_elem is None or "norsk" not in (product_type_elem.text or "").strip().lower():
         continue
 
     new_item = ET.SubElement(channel, "item")
