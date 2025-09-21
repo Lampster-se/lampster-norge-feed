@@ -2,6 +2,7 @@ import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP
 import os
+import time
 
 SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
@@ -12,8 +13,8 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta originalfeed
-resp = requests.get(SOURCE_URL)
+# Hämta originalfeed med cache-busting
+resp = requests.get(f"{SOURCE_URL}?t={int(time.time())}", headers={'Cache-Control': 'no-cache'})
 resp.raise_for_status()
 
 parser = ET.XMLParser(recover=True)
