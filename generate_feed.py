@@ -32,7 +32,9 @@ for tag in ["title", "link", "description"]:
         ET.SubElement(channel, tag).text = elem.text
 
 # Konvertera standardfrakt
-NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(
+    Decimal("0.01"), rounding=ROUND_HALF_UP
+)
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
@@ -50,7 +52,9 @@ for item in orig_channel.findall("item"):
         if tag == "price" and text:
             try:
                 value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
                 text = f"{nok_value:.2f} NOK"
             except:
                 text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
@@ -75,33 +79,12 @@ for item in orig_channel.findall("item"):
 
     # Leveranstid 1-9 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"  # ✅ här var tidigare tex-felet
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
 
 # Spara fil
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
-    new_item = ET.SubElement(channel, "item")
-
-    # Kopiera fält och konvertera pris
-    for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
-        elem = item.find(f"g:{tag}", ns)
-        text = elem.text if elem is not None else None
-
-        if tag == "price" and text:
-            try:
-                value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                text = f"{nok_value:.2f} NOK"
-            except:
-                text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-        elif tag == "price":
-            text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-
-        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
-
-    # Frakt
-    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
 
