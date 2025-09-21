@@ -26,9 +26,6 @@ jobs:
       - name: Generate norsk feed
         run: python generate_feed.py
 
-      - name: List output directory
-        run: ls -l ./lampster-norge-feed
-
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
