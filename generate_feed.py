@@ -7,6 +7,7 @@ import time
 # ---------------------------
 # Inställningar
 # ---------------------------
+# Lägg till timestamp för cache-busting
 SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cache_bust={int(time.time())}"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
@@ -22,8 +23,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 resp = requests.get(SOURCE_URL)
 resp.raise_for_status()
 
-# Debug: se om de nya produkterna finns med
-print("Hämtad feed (första 500 tecken):")
+# Debug: se att feeden innehåller nya produkter
+print("Första 500 tecken från Webnode feed:")
 print(resp.text[:500])
 
 parser = ET.XMLParser(recover=True)
@@ -102,6 +103,10 @@ for item in orig_channel.findall("item"):
 
 # ---------------------------
 # Spara fil
+# ---------------------------
+tree_out = ET.ElementTree(rss)
+tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
+print(f"Klar! Fil sparad som {OUTPUT_FILE}")
 # ---------------------------
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
