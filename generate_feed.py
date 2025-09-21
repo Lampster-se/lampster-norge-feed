@@ -4,7 +4,7 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 import time
 
-# Live-feed från Webnode med cache-bust
+# URL med cache-bust för att alltid hämta live-feed
 SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cache_bust={int(time.time())}"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
@@ -45,7 +45,7 @@ for item in orig_channel.findall("item"):
 
     new_item = ET.SubElement(channel, "item")
 
-    # Kopiera och konvertera pris
+    # Kopiera fält och konvertera pris
     for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
