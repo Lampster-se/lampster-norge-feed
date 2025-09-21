@@ -230,5 +230,24 @@
         <g:max_transit_time>9</g:max_transit_time>
       </g:shipping>
     </item>
+    <item>
+      <g:id>200001936</g:id>
+      <g:title>N/A</g:title>
+      <g:description>N/A</g:description>
+      <g:link>N/A</g:link>
+      <g:image_link>https://a0b57b3acd.clvaw-cdnwnd.com/eb180ef0aec7e5106d478018e30d100b/200002471-8019f801a1/Polish_20230713_205611201-8.jpeg?ph=a0b57b3acd</g:image_link>
+      <g:availability>in stock</g:availability>
+      <g:product_type>Övrigt &gt; Populärt &gt; Norsk</g:product_type>
+      <g:price>694.16 NOK</g:price>
+      <g:shipping>
+        <g:country>NO</g:country>
+        <g:service>Standard</g:service>
+        <g:price>132.41 NOK</g:price>
+        <g:min_handling_time>0</g:min_handling_time>
+        <g:max_handling_time>1</g:max_handling_time>
+        <g:min_transit_time>1</g:min_transit_time>
+        <g:max_transit_time>9</g:max_transit_time>
+      </g:shipping>
+    </item>
   </channel>
 </rss>
