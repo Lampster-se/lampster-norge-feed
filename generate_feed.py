@@ -12,14 +12,16 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta live feed med headers som tvingar Webnode att ge senaste
+# Skapa session för att undvika cache
+session = requests.Session()
 headers = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
     "Pragma": "no-cache",
     "Expires": "0",
     "User-Agent": "Mozilla/5.0"
 }
-resp = requests.get(SOURCE_URL, headers=headers)
+
+resp = session.get(SOURCE_URL, headers=headers)
 resp.raise_for_status()
 print(f"Fetched {len(resp.content)} bytes from {SOURCE_URL}")
 
@@ -53,6 +55,7 @@ for item in orig_channel.findall("item"):
     count_norsk += 1
     new_item = ET.SubElement(channel, "item")
 
+    # Kopiera fält och konvertera pris
     for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
@@ -84,7 +87,7 @@ for item in orig_channel.findall("item"):
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
 
-print(f"Total produkter i feed: {count_total}")
+print(f"Totalt produkter i feed: {count_total}")
 print(f"Produkter med Norsk: {count_norsk}")
 
 tree_out = ET.ElementTree(rss)
