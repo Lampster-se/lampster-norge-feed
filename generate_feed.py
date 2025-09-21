@@ -12,7 +12,7 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta live-feed
+# Hämta live feed
 resp = requests.get(SOURCE_URL)
 resp.raise_for_status()
 
@@ -32,9 +32,7 @@ for tag in ["title", "link", "description"]:
         ET.SubElement(channel, tag).text = elem.text
 
 # Konvertera standardfrakt
-NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(
-    Decimal("0.01"), rounding=ROUND_HALF_UP
-)
+NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
@@ -83,25 +81,6 @@ for item in orig_channel.findall("item"):
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
-from decimal import Decimal, ROUND_HALF_UP
-import os
-
-SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
-OUTPUT_DIR = "lampster-norge-feed"
-OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
-CONVERSION_RATE = Decimal("1.3375")  # SEK → NOK
-STANDARD_SEK_SHIPPING = 99
-FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
-
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# Hämta live feed
-resp = requests.get(SOURCE_URL)
-resp.raise_for_status()
-
-parser = ET.XMLParser(recover=True)
-tree = ET.fromstring(resp.content, parser=parser)
-
 G_NS = "http://base.google.com/ns/1.0"
 ns = {"g": G_NS}
 
