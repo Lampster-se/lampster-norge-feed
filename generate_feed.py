@@ -90,18 +90,6 @@ for item in all_items:
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
-os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-# ---------------------------
-# Hämta live feed
-# ---------------------------
-resp = requests.get(SOURCE_URL)
-resp.raise_for_status()
-
-# Debug: se att feeden innehåller nya produkter
-print("Första 500 tecken från Webnode feed:")
-print(resp.text[:500])
-
 parser = ET.XMLParser(recover=True)
 tree = ET.fromstring(resp.content, parser=parser)
 
