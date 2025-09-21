@@ -2,7 +2,6 @@ import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP
 import os
-import time
 
 SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
@@ -13,8 +12,8 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# Hämta originalfeed med cache-busting
-resp = requests.get(f"{SOURCE_URL}?t={int(time.time())}", headers={'Cache-Control': 'no-cache'})
+# Hämta live feed
+resp = requests.get(SOURCE_URL)
 resp.raise_for_status()
 
 parser = ET.XMLParser(recover=True)
@@ -37,12 +36,13 @@ NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quant
 
 for item in orig_channel.findall("item"):
     product_type_elem = item.find("g:product_type", ns)
-    if product_type_elem is None or "norsk" not in (product_type_elem.text or "").strip().lower():
+    text_product_type = (product_type_elem.text or "").lower() if product_type_elem is not None else ""
+    if "norsk" not in text_product_type:
         continue
 
     new_item = ET.SubElement(channel, "item")
 
-    # Kopiera viktiga fält och konvertera pris
+    # Kopiera fält och konvertera pris
     for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
         elem = item.find(f"g:{tag}", ns)
         text = elem.text if elem is not None else None
@@ -59,19 +59,14 @@ for item in orig_channel.findall("item"):
 
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
 
-    # Lägg till frakt och tider
+    # Frakt
     shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
 
-    # Fri frakt över tröskel
     price_elem = new_item.find(f"{{{G_NS}}}price")
     price_value = Decimal(price_elem.text.split()[0])
-    if price_value >= FREE_SHIPPING_THRESHOLD:
-        shipping_price = Decimal("0.00")
-    else:
-        shipping_price = NOK_STANDARD_SHIPPING
-
+    shipping_price = Decimal("0.00") if price_value >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
     ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
 
     # Hanteringstid 0-1 arbetsdagar
@@ -80,9 +75,4 @@ for item in orig_channel.findall("item"):
 
     # Leveranstid 1-9 arbetsdagar
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
-
-# Spara fil
-tree_out = ET.ElementTree(rss)
-tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
-print(f"Klar! Fil sparad som {OUTPUT_FILE}")
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").tex
