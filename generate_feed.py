@@ -81,27 +81,6 @@ for item in orig_channel.findall("item"):
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
 print(f"Klar! Fil sparad som {OUTPUT_FILE}")
-    # Kopiera fält och konvertera pris
-    for tag in ["id", "title", "description", "link", "image_link", "availability", "product_type", "price"]:
-        elem = item.find(f"g:{tag}", ns)
-        text = elem.text if elem is not None else None
-
-        if tag == "price" and text:
-            try:
-                value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                text = f"{nok_value:.2f} NOK"
-            except:
-                text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-        elif tag == "price":
-            text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-
-        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
-
-    # Frakt
-    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
 
     price_elem = new_item.find(f"{{{G_NS}}}price")
     price_value = Decimal(price_elem.text.split()[0])
