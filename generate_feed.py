@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
 generate_feed.py
-Hämtar Webnode-feed och skapar norsk Google Merchant RSS/Feed.
+Skapar norsk Google Merchant RSS/Feed från Webnode.
 - Filtrerar produkter med kategori 'norsk'
-- Konverterar pris SEK -> NOK (kurs 1,3375)
+- Konverterar pris SEK -> NOK (1,3375)
 - Lägger till fraktkostnad
-- Skriver fil atomiskt
+- Atomisk filskrivning
 """
 
 import requests
@@ -23,9 +23,9 @@ SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 
-CONVERSION_RATE = Decimal("1.3375")  # SEK -> NOK
+CONVERSION_RATE = Decimal("1.3375")
 STANDARD_SEK_SHIPPING = Decimal("99")
-FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
+FREE_SHIPPING_THRESHOLD = Decimal("735.00")
 
 FETCH_ATTEMPTS = 5
 FETCH_DELAY_SECONDS = 2
@@ -62,7 +62,7 @@ def find_child_text(item, localname, ns):
 # ---------- skapa output-katalog ----------
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ---------- hämta feed med cache-bust ----------
+# ---------- hämta feed ----------
 session = requests.Session()
 headers = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -83,7 +83,7 @@ for attempt in range(1, FETCH_ATTEMPTS + 1):
             print("[fetch] OK - feed contains items.")
             break
         else:
-            print("[fetch] Warning: feed fetched but no <item> found. Retrying...")
+            print("[fetch] Warning: no <item> found, retrying...")
     except Exception as e:
         print(f"[fetch] Error: {e}")
     time.sleep(FETCH_DELAY_SECONDS)
@@ -125,179 +125,16 @@ included_titles = []
 try:
     NOK_STANDARD_SHIPPING = (STANDARD_SEK_SHIPPING * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 except Exception:
-    NOK_STANDARD_SHIPPING = (Decimal("99") * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    NOK_STANDARD_SHIPPING = Decimal("132.38")  # fallback
 
 for item in items:
     product_type_text = find_child_text(item, "product_type", ns) or ""
     google_cat_text = find_child_text(item, "google_product_category", ns) or ""
     product_cat_combined = (product_type_text + " " + google_cat_text).strip().lower()
-
     if "norsk" not in product_cat_combined:
         continue
 
     new_item = ET.SubElement(channel, "item")
-
-    pid = find_child_text(item, "id", ns) or find_child_text(item, "g:id", ns) or "unknown"
-    title_text = find_child_text(item, "title", ns) or "no-title"
-    included_ids.append(pid)
-    included_titles.append(title_text)
-
-    for tag in ("id", "title", "description", "link", "image_link", "availability", "product_type", "price"):
-        val = find_child_text(item, tag, ns)
-        if tag == "price":
-            if val:
-                d = safe_decimal_from_str(val)
-                if d is not None:
-                    nok = (d * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                    out_val = f"{nok:.2f} NOK"
-                else:
-                    out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-            else:
-                out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-            ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = out_val
-            continue
-        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = val if val else "N/A"
-
-    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
-    price_elem = find_child_text(new_item, "price", ns)
-    price_val = safe_decimal_from_str(price_elem) or Decimal("0.00")
-    shipping_price = Decimal("0.00") if price_val >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
-
-print(f"[info] Inkluderade produkter: {len(included_ids)}")
-if included_ids:
-    for i, pid in enumerate(included_ids[:200], start=1):
-        t = included_titles[i-1] if i-1 < len(included_titles) else ""
-        print(f" - {i}: id={pid} title={t}")
-
-tmp_fd, tmp_path = tempfile.mkstemp(suffix=".xml", prefix="norsk-feed-", dir=OUTPUT_DIR)
-os.close(tmp_fd)
-try:
-    tree_out = ET.ElementTree(rss)
-    tree_out.write(tmp_path, encoding="utf-8", xml_declaration=True, pretty_print=True)
-    shutil.move(tmp_path, OUTPUT_FILE)
-    print(f"[ok] Skriven fil: {OUTPUT_FILE}")
-except Exception as e:
-    print(f"[error] Kunde inte skriva output: {e}", file=sys.stderr)
-    if os.path.exists(tmp_path):
-        os.remove(tmp_path)
-    sys.exit(1)
-
-if not included_ids:
-    print("[warn] Ingen 'norsk' produkt hittades.")
-sys.exit(0)
-    sys.exit(1)
-
-for tag in ("title", "link", "description"):
-    t = orig_channel.find(tag)
-    if t is not None and t.text:
-        ET.SubElement(channel, tag).text = t.text
-
-items = orig_channel.findall("item")
-print(f"[info] Totalt items i source-feed: {len(items)}")
-
-included_ids = []
-included_titles = []
-
-try:
-    NOK_STANDARD_SHIPPING = (STANDARD_SEK_SHIPPING * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-except Exception:
-    NOK_STANDARD_SHIPPING = (Decimal("99") * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-for item in items:
-    product_type_text = find_child_text(item, "product_type", ns) or ""
-    google_cat_text = find_child_text(item, "google_product_category", ns) or ""
-    product_cat_combined = (product_type_text + " " + google_cat_text).strip().lower()
-
-    if "norsk" not in product_cat_combined:
-        continue
-
-    new_item = ET.SubElement(channel, "item")
-
-    pid = find_child_text(item, "id", ns) or find_child_text(item, "g:id", ns) or "unknown"
-    title_text = find_child_text(item, "title", ns) or "no-title"
-    included_ids.append(pid)
-    included_titles.append(title_text)
-
-    for tag in ("id", "title", "description", "link", "image_link", "availability", "product_type", "price"):
-        val = find_child_text(item, tag, ns)
-        if tag == "price":
-            if val:
-                d = safe_decimal_from_str(val)
-                if d is not None:
-                    nok = (d * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-                    out_val = f"{nok:.2f} NOK"
-                else:
-                    out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-            else:
-                out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
-            ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = out_val
-            continue
-        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = val if val else "N/A"
-
-    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
-    price_elem = find_child_text(new_item, "price", ns)
-    price_val = safe_decimal_from_str(price_elem) or Decimal("0.00")
-    shipping_price = Decimal("0.00") if price_val >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
-    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
-
-print(f"[info] Inkluderade produkter: {len(included_ids)}")
-if included_ids:
-    for i, pid in enumerate(included_ids[:200], start=1):
-        t = included_titles[i-1] if i-1 < len(included_titles) else ""
-        print(f" - {i}: id={pid} title={t}")
-
-tmp_fd, tmp_path = tempfile.mkstemp(suffix=".xml", prefix="norsk-feed-", dir=OUTPUT_DIR)
-os.close(tmp_fd)
-try:
-    tree_out = ET.ElementTree(rss)
-    tree_out.write(tmp_path, encoding="utf-8", xml_declaration=True, pretty_print=True)
-    shutil.move(tmp_path, OUTPUT_FILE)
-    print(f"[ok] Skriven fil: {OUTPUT_FILE}")
-except Exception as e:
-    print(f"[error] Kunde inte skriva output: {e}", file=sys.stderr)
-    if os.path.exists(tmp_path):
-        os.remove(tmp_path)
-    sys.exit(1)
-
-if not included_ids:
-    print("[warn] Ingen 'norsk' produkt hittades.")
-sys.exit(0)
-        ET.SubElement(channel, tag).text = t.text
-
-items = orig_channel.findall("item")
-print(f"[info] Totalt items i source-feed: {len(items)}")
-
-included_ids = []
-included_titles = []
-
-try:
-    NOK_STANDARD_SHIPPING = (STANDARD_SEK_SHIPPING * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-except Exception:
-    NOK_STANDARD_SHIPPING = (Decimal("99") * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-for item in items:
-    product_type_text = find_child_text(item, "product_type", ns) or ""
-    google_cat_text = find_child_text(item, "google_product_category", ns) or ""
-    product_cat_combined = (product_type_text + " " + google_cat_text).strip().lower()
-
-    if "norsk" not in product_cat_combined:
-        continue
-
-    new_item = ET.SubElement(channel, "item")
-
     pid = find_child_text(item, "id", ns) or find_child_text(item, "g:id", ns) or "unknown"
     title_text = find_child_text(item, "title", ns) or "no-title"
     included_ids.append(pid)
