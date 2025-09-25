@@ -3,9 +3,9 @@ name: Generera norsk feed
 on:
   push:
     branches: [ main ]
-  workflow_dispatch: {}
+  workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'  # kör dagligen kl 03:00 (valfritt)
+    - cron: '0 3 * * *'
 
 jobs:
   build:
@@ -23,26 +23,29 @@ jobs:
         python-version: '3.x'
 
     - name: Install dependencies
-      run: |
-        pip install requests
+      run: pip install requests
 
     - name: Generate feed
       run: python generate_feed.py
 
-    - name: Configure Git
-      run: |
-        git config --local user.name "github-actions[bot]"
-        git config --local user.email "github-actions[bot]@users.noreply.github.com"
-
     - name: Publish to gh-pages
       run: |
-        # Hämta gh-pages och checkout (skapa den om den saknas)
-        git fetch origin gh-pages:gh-pages || true
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        # Byt till gh-pages (eller skapa om den inte finns)
+        git fetch origin gh-pages || true
         git checkout gh-pages || git checkout --orphan gh-pages
-        # Ta bort alla gamla filer (om några finns)
+
+        # Ta bort gamla filer
         git rm -rf . || true
-        # Kopiera över ny fil
-        cp ../norsk-feed.xml ./norsk-feed.xml
-        git add norsk-feed.xml
-        git commit -m "Uppdatera norsk-feed.xml"
+
+        # Kopiera in ny feed från build/
+        cp build/norsk-feed.xml ./norsk-feed.xml
+
+        # Lägg till .nojekyll så att Pages inte bråkar
+        touch .nojekyll
+        git add norsk-feed.xml .nojekyll
+
+        git commit -m "Uppdatera norsk-feed.xml [ci skip]" || echo "Inga ändringar"
         git push origin gh-pages --force
