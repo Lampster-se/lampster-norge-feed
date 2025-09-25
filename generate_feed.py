@@ -1,107 +1,112 @@
-#!/usr/bin/env python3
-"""
-generate_feed.py
-Hämtar live-feed från Webnode och skapar en norsk Google Merchant RSS/Feed.
-Robust: försöker alltid cache-bust, försöker hitta taggar både med och utan namespace,
-loggar vilka produkter som hittas och vilka som inkluderas i output.
-"""
-
 import requests
 import lxml.etree as ET
-from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+from decimal import Decimal, ROUND_HALF_UP
 import os
-import time
-import re
-import tempfile
-import shutil
-import sys
 
-# ---------- inställningar ----------
-SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
+# Webnode feed (källa)
+SOURCE_URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
+
+# Målfil (GitHub Pages)
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 
-CONVERSION_RATE = Decimal("1.3375")  # SEK -> NOK
-STANDARD_SEK_SHIPPING = Decimal("99")
+# Omräkning SEK → NOK
+CONVERSION_RATE = Decimal("1.3375")
+STANDARD_SEK_SHIPPING = 99
 FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
-# max försök att hämta live-feed (cache-bust olika timestamp)
-FETCH_ATTEMPTS = 5
-FETCH_DELAY_SECONDS = 2
-
-# ---------- hjälpfunktioner ----------
-def safe_decimal_from_str(s):
-    """Hämta första nummer i strängen och returnera Decimal (punkt decimal)."""
-    if not s:
-        return None
-    m = re.search(r"[-+]?[0-9\.,]+", s)
-    if not m:
-        return None
-    num = m.group(0).replace(",", ".")
-    try:
-        return Decimal(num)
-    except InvalidOperation:
-        return None
-
-def find_child_text(item, localname, ns):
-    """
-    Försök hitta child med namn localname både med g: namespace och utan.
-    Returnerar text eller None.
-    """
-    # försök namespaced
-    try:
-        e = item.find(f"g:{localname}", ns)
-    except Exception:
-        e = None
-    if e is not None and e.text is not None:
-        return e.text.strip()
-    # försök utan namespace
-    e = item.find(localname)
-    if e is not None and e.text is not None:
-        return e.text.strip()
-    # fallback: sök alla children som slutar på localname
-    for c in item:
-        # child.tag kan vara "{uri}localname" eller "localname"
-        if isinstance(c.tag, str) and c.tag.endswith(localname):
-            if c.text:
-                return c.text.strip()
-    return None
-
-def find_child_elem(item, localname, ns):
-    """Returnerar element-objekt eller None, med samma strategi som find_child_text."""
-    try:
-        e = item.find(f"g:{localname}", ns)
-    except Exception:
-        e = None
-    if e is not None:
-        return e
-    e = item.find(localname)
-    if e is not None:
-        return e
-    for c in item:
-        if isinstance(c.tag, str) and c.tag.endswith(localname):
-            return c
-    return None
-
-# ---------- försök hämta feed med cache-bust ----------
+# Skapa output-mapp
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-session = requests.Session()
-headers = {
-    "Cache-Control": "no-cache, no-store, must-revalidate",
-    "Pragma": "no-cache",
-    "Expires": "0",
-    "User-Agent": "Mozilla/5.0 (compatible; feed-updater/1.0)"
-}
+# Hämta live feed
+resp = requests.get(SOURCE_URL, timeout=30)
+resp.raise_for_status()
 
-last_resp_text = None
-resp = None
-for attempt in range(1, FETCH_ATTEMPTS + 1):
-    cb = int(time.time())
-    url = f"{SOURCE_BASE}?cb={cb}"
-    print(f"[fetch] Attempt {attempt}/{FETCH_ATTEMPTS} -> {url}")
-    try:
-        resp = session.get(url, headers=headers, timeout=30)
+parser = ET.XMLParser(recover=True)
+tree = ET.fromstring(resp.content, parser=parser)
+
+# Namespaces
+G_NS = "http://base.google.com/ns/1.0"
+ns = {"g": G_NS}
+
+# Ny RSS-root
+rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
+channel = ET.SubElement(rss, "channel")
+
+# Kopiera över metadata
+orig_channel = tree.find("channel")
+for tag in ["title", "link", "description"]:
+    elem = orig_channel.find(tag)
+    if elem is not None and elem.text:
+        ET.SubElement(channel, tag).text = elem.text
+
+# Konvertera frakt SEK → NOK
+NOK_STANDARD_SHIPPING = (
+    Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE
+).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+# Bygg produktlista
+for item in orig_channel.findall("item"):
+    product_type_elem = item.find("g:product_type", ns)
+    text_product_type = (
+        product_type_elem.text or ""
+    ).lower() if product_type_elem is not None else ""
+
+    # Endast produkter i kategori "norsk"
+    if "norsk" not in text_product_type:
+        continue
+
+    new_item = ET.SubElement(channel, "item")
+
+    # Kopiera fält
+    for tag in [
+        "id", "title", "description", "link", "image_link",
+        "availability", "product_type", "price"
+    ]:
+        elem = item.find(f"g:{tag}", ns)
+        text = elem.text if elem is not None else None
+
+        if tag == "price" and text:
+            try:
+                value, currency = text.split()
+                nok_value = (
+                    Decimal(value) * CONVERSION_RATE
+                ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                text = f"{nok_value:.2f} NOK"
+            except Exception:
+                text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
+        elif tag == "price":
+            text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
+
+        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = text or "N/A"
+
+    # Fraktinformation
+    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
+
+    price_elem = new_item.find(f"{{{G_NS}}}price")
+    price_value = Decimal(price_elem.text.split()[0])
+    shipping_price = (
+        Decimal("0.00") if price_value >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
+    )
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
+
+    # Hanteringstid: 0–1 arbetsdagar
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
+
+    # Leveranstid: 1–9 arbetsdagar
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
+
+# Spara feeden
+tree_out = ET.ElementTree(rss)
+tree_out.write(
+    OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True
+)
+
+print(f"Klar! Feed sparad som {OUTPUT_FILE}")
         resp.raise_for_status()
         last_resp_text = resp.text
         # basic sanity: must contain <item> and at least one occurrence of "g:id" or "<id>"
