@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          # prepare git identity
+          # configure git identity
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
@@ -62,22 +62,33 @@ jobs:
           fi
 
           # --- push to gh-pages (for GitHub Pages) ---
-          # ensure we know if gh-pages exists on remote
+          # Ensure gh-pages exists on remote
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages:gh-pages
             git checkout gh-pages
           else
-            # create orphan branch
+            # create orphan branch locally (no history)
             git checkout --orphan gh-pages
-            # remove all files from index/worktree
             git rm -rf --ignore-unmatch .
-            # ensure directory exists
             mkdir -p lampster-norge-feed
           fi
 
-          # Copy generated file into gh-pages branch (same path)
+          # Write file into gh-pages branch by reading it from generated-feed branch
+          # (this avoids issues where switching branch removes the generated file)
           mkdir -p lampster-norge-feed
-          cp -f lampster-norge-feed/norsk-feed.xml lampster-norge-feed/norsk-feed.xml
+          # Use origin/generated-feed if present, else local generated-feed
+          if git ls-remote --heads origin generated-feed | grep -q generated-feed; then
+            git show origin/generated-feed:lampster-norge-feed/norsk-feed.xml > lampster-norge-feed/norsk-feed.xml || true
+          else
+            # fallback to local branch (if just committed)
+            git show generated-feed:lampster-norge-feed/norsk-feed.xml > lampster-norge-feed/norsk-feed.xml || true
+          fi
+
+          if [ ! -f lampster-norge-feed/norsk-feed.xml ]; then
+            echo "ERROR: could not retrieve generated file into gh-pages branch"
+            exit 1
+          fi
+
           git add lampster-norge-feed/norsk-feed.xml
 
           if git diff --staged --quiet; then
