@@ -1,12 +1,12 @@
-name: Generate Lampster Norge Feed
+name: Generate Norsk Feed
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 1 * * *'  # kör varje dag 01:00 UTC
+    - cron: '0 * * * *' # varje timme
+  workflow_dispatch:
 
 jobs:
-  build:
+  build-feed:
     runs-on: ubuntu-latest
 
     steps:
@@ -16,16 +16,18 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: 3.11
 
       - name: Install dependencies
-        run: pip install requests lxml
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests lxml
 
-      - name: Generate feed
+      - name: Run feed generator
         run: python generate_feed.py
 
       - name: Upload feed artifact
         uses: actions/upload-artifact@v4
         with:
-          name: feed
+          name: norsk-feed
           path: lampster-norge-feed/norsk-feed.xml
