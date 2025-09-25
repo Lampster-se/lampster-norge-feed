@@ -3,11 +3,11 @@
 generate_feed.py
 
 Hämtar live-feed från Webnode, filtrerar produkter med kategori 'norsk',
-konverterar SEK -> NOK (1.3375), lägger till fraktinfo och skriver
-lampster-norge-feed/norsk-feed.xml atomiskt.
-Skriptet gör ENDAST filgenereringen (ingen git/push här).
-"""
+konverterar SEK -> NOK (1.3375), lägger till fraktinfo (NO) och skriver
+lampster-norge-feed/norsk-feed.xml samt norsk-feed.xml (repo-roten) atomiskt.
 
+Skriptet gör ENDAST filgenerering; git/push hanteras av workflow.
+"""
 from __future__ import annotations
 import requests
 import lxml.etree as ET
@@ -19,12 +19,13 @@ from datetime import datetime
 SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
+ROOT_OUTPUT = "norsk-feed.xml"   # kopia i repo-roten (för enkel inspektion)
 
 CONVERSION_RATE = Decimal("1.3375")   # SEK -> NOK
 STANDARD_SEK_SHIPPING = Decimal("99")
 FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
-FETCH_ATTEMPTS = 5
+FETCH_ATTEMPTS = 6
 FETCH_DELAY_SECONDS = 2
 
 G_NS = "http://base.google.com/ns/1.0"
@@ -44,6 +45,7 @@ def safe_decimal_from_str(s: str | None) -> Decimal | None:
         return None
 
 def find_child_text(item: ET._Element, localname: str, nsmap) -> str | None:
+    # Försök namespaced, sedan utan, sen fallback på tag-ändelse
     try:
         e = item.find(f"g:{localname}", nsmap)
     except Exception:
@@ -59,16 +61,16 @@ def find_child_text(item: ET._Element, localname: str, nsmap) -> str | None:
                 return c.text.strip()
     return None
 
-# ---------- skapa dir ----------
+# ---------- START ----------
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ---------- hämta feed (cache-bust) ----------
+# Hämta med cache-bust (flera försök)
 session = requests.Session()
 headers = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
     "Pragma": "no-cache",
     "Expires": "0",
-    "User-Agent": "feed-updater/1.0 (+lampster)"
+    "User-Agent": "lampster-feed-updater/1.0"
 }
 
 resp = None
@@ -79,12 +81,13 @@ for attempt in range(1, FETCH_ATTEMPTS + 1):
     try:
         r = session.get(url, headers=headers, timeout=30)
         r.raise_for_status()
+        # enkel sanity check
         if "<item" in r.text:
             resp = r
             print("[fetch] OK - feed appears to contain items")
             break
         else:
-            print("[fetch] Warning: no <item> found; retrying")
+            print("[fetch] Warning: downloaded feed lacks <item>; retrying")
     except Exception as e:
         print(f"[fetch] Error: {e}")
     time.sleep(FETCH_DELAY_SECONDS)
@@ -93,7 +96,7 @@ if resp is None:
     print("[error] Could not fetch feed after retries", file=sys.stderr)
     sys.exit(1)
 
-# ---------- parse ----------
+# Parse via lxml (rekonstruera tolerant)
 parser = ET.XMLParser(recover=True)
 try:
     tree = ET.fromstring(resp.content, parser=parser)
@@ -101,7 +104,7 @@ except Exception as e:
     print(f"[error] XML parse error: {e}", file=sys.stderr)
     sys.exit(1)
 
-# ---------- build output RSS ----------
+# Build output RSS
 rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
 channel = ET.SubElement(rss, "channel")
 
@@ -110,13 +113,13 @@ if orig_channel is None:
     print("[error] Source feed has no <channel>", file=sys.stderr)
     sys.exit(1)
 
-# Kopiera title/link/description
+# Kopiera metadata
 for tag in ("title", "link", "description"):
     t = orig_channel.find(tag)
     if t is not None and t.text:
         ET.SubElement(channel, tag).text = t.text
 
-# Lägg in lastBuildDate (UTC)
+# Sätt lastBuildDate (UTC)
 now_str = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
 ET.SubElement(channel, "lastBuildDate").text = now_str
 
@@ -124,9 +127,8 @@ items = orig_channel.findall("item")
 print(f"[info] Source items: {len(items)}")
 
 included_count = 0
-NOK_STANDARD_SHIPPING = (STANDARD_SEK_SHIPPING * CONVERSION_RATE).quantize(
-    Decimal("0.01"), rounding=ROUND_HALF_UP
-)
+included_ids = []
+NOK_STANDARD_SHIPPING = (STANDARD_SEK_SHIPPING * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 for item in items:
     product_type_text = (find_child_text(item, "product_type", ns) or "")
@@ -137,6 +139,11 @@ for item in items:
 
     included_count += 1
     new_item = ET.SubElement(channel, "item")
+
+    # logga id/title
+    pid = find_child_text(item, "id", ns) or "unknown"
+    title = find_child_text(item, "title", ns) or ""
+    included_ids.append(pid)
 
     for tag in ("id", "title", "description", "link", "image_link",
                 "availability", "product_type", "price"):
@@ -153,9 +160,10 @@ for item in items:
                 out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
             ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = out_val
             continue
+
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = val if val else "N/A"
 
-    # shipping block
+    # shipping block (NO)
     shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
@@ -174,19 +182,36 @@ for item in items:
 
 print(f"[info] Included norsk products: {included_count}")
 
-# ---------- write atomiskt ----------
+# ---------- skriv atomiskt ----------
 tmp_fd, tmp_path = tempfile.mkstemp(suffix=".xml", prefix="norsk-feed-", dir=OUTPUT_DIR)
 os.close(tmp_fd)
 tree_out = ET.ElementTree(rss)
 try:
     tree_out.write(tmp_path, encoding="utf-8", xml_declaration=True, pretty_print=True)
-    # move into place
     shutil.move(tmp_path, OUTPUT_FILE)
-    print(f"[ok] Wrote {OUTPUT_FILE}")
+    # också kopiera till repo-roten för att kunna inspektera i main direkt
+    shutil.copy2(OUTPUT_FILE, ROOT_OUTPUT)
+    print(f"[ok] Wrote {OUTPUT_FILE} and {ROOT_OUTPUT}")
 except Exception as e:
     print(f"[error] Writing output failed: {e}", file=sys.stderr)
     if os.path.exists(tmp_path):
         os.remove(tmp_path)
     sys.exit(1)
+
+# Print brief preview for workflow logs (helps debugging)
+try:
+    with open(OUTPUT_FILE, "r", encoding="utf-8") as fh:
+        first_lines = "".join([next(fh) for _ in range(40)])
+    print("----- BEGIN GENERATED FEED PREVIEW -----")
+    print(first_lines)
+    print("-----  END GENERATED FEED PREVIEW  -----")
+except Exception:
+    print("[warn] Could not print feed preview (maybe file shorter than 40 lines)")
+
+# Log included IDs (max 200)
+if included_ids:
+    print("[info] Included product IDs (sample):")
+    for i, pid in enumerate(included_ids[:200], start=1):
+        print(f" - {i}: {pid}")
 
 sys.exit(0)
