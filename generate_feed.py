@@ -2,35 +2,30 @@ import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
 
-# Din källa, t.ex. RSS eller API
 URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
+OUTPUT_FILE = "feed_output.xml"
 
 def fetch_feed(url):
-    resp = requests.get(url)
-    resp.raise_for_status()  # Korrekt indenterad
-    return resp.text
+    response = requests.get(url)
+    response.raise_for_status()
+    return response.text
 
-def generate_feed(xml_content):
+def parse_feed(xml_content):
     root = ET.fromstring(xml_content)
     items = []
 
     for item in root.findall(".//item"):
-        title = item.find("title").text if item.find("title") is not None else ""
-        link = item.find("link").text if item.find("link") is not None else ""
-        pubDate = item.find("pubDate").text if item.find("pubDate") is not None else datetime.now().isoformat()
-
-        items.append({
-            "title": title,
-            "link": link,
-            "pubDate": pubDate
-        })
+        title = item.findtext("title", default="")
+        link = item.findtext("link", default="")
+        pubDate = item.findtext("pubDate", default=datetime.now().isoformat())
+        items.append({"title": title, "link": link, "pubDate": pubDate})
 
     return items
 
-def save_feed(items, filename="feed_output.xml"):
+def save_feed(items, filename):
     root = ET.Element("rss", version="2.0")
     channel = ET.SubElement(root, "channel")
-    
+
     for item in items:
         item_elem = ET.SubElement(channel, "item")
         ET.SubElement(item_elem, "title").text = item["title"]
@@ -41,7 +36,7 @@ def save_feed(items, filename="feed_output.xml"):
     tree.write(filename, encoding="utf-8", xml_declaration=True)
 
 if __name__ == "__main__":
-    xml_content = fetch_feed(URL)
-    items = generate_feed(xml_content)
-    save_feed(items)
-    print(f"Feed saved with {len(items)} items.")
+    xml_data = fetch_feed(URL)
+    items = parse_feed(xml_data)
+    save_feed(items, OUTPUT_FILE)
+    print(f"Feed generated with {len(items)} items and saved to {OUTPUT_FILE}.")
