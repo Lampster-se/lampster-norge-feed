@@ -2,8 +2,8 @@
 """
 generate_feed.py
 
-Hämtar live-feed från Webnode, filtrerar 'norsk' produkter,
-konverterar SEK -> NOK, lägger till fraktinfo och skriver
+Hämtar live-feed från Webnode, filtrerar produkter med kategori 'norsk',
+konverterar priser SEK->NOK (1.3375), lägger till fraktinfo och skriver
 lampster-norge-feed/norsk-feed.xml atomiskt.
 """
 
@@ -11,12 +11,7 @@ from __future__ import annotations
 import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
-import os
-import time
-import re
-import tempfile
-import shutil
-import sys
+import os, time, re, tempfile, shutil, sys
 
 # ---------- KONFIG ----------
 SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
@@ -47,7 +42,6 @@ def safe_decimal_from_str(s: str | None) -> Decimal | None:
         return None
 
 def find_child_text(item: ET._Element, localname: str, nsmap) -> str | None:
-    # försök namespaced, sen utan, sen fallback baserat på tag-ändelse
     try:
         e = item.find(f"g:{localname}", nsmap)
     except Exception:
