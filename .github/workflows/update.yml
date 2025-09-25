@@ -2,7 +2,7 @@ name: Update Norwegian Feed
 
 on:
   schedule:
-    - cron: '0 * * * *'   # kör varje timme
+    - cron: '0 * * * *'   # varje timme
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,6 @@ permissions:
 jobs:
   generate:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,13 +24,17 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests lxml
+      - name: Install deps
+        run: python -m pip install --upgrade pip && pip install requests lxml
 
-      - name: Run feed generator
+      - name: Run generator
         run: python generate_feed.py
+
+      - name: Show generated file (quick check)
+        run: |
+          echo "Generated file exists?"; ls -l lampster-norge-feed/norsk-feed.xml || true
+          echo "Preview (first 60 lines):"
+          sed -n '1,60p' lampster-norge-feed/norsk-feed.xml || true
 
       - name: Configure git identity
         run: |
@@ -44,69 +47,78 @@ jobs:
         run: |
           set -euo pipefail
           if [ ! -f "$OUTPUT_PATH" ]; then
-            echo "ERROR: Generated file not found: $OUTPUT_PATH"
+            echo "ERROR: missing $OUTPUT_PATH"
             exit 1
           fi
-
           git fetch origin
           git checkout -B generated-feed
-
           git add "$OUTPUT_PATH"
           if git diff --staged --quiet; then
-            echo "No changes to commit on generated-feed"
+            echo "No changes for generated-feed"
           else
             git commit -m "Auto-update norsk-feed.xml [ci skip]"
             git push --force origin generated-feed
             echo "✅ Pushed to generated-feed"
           fi
 
-      - name: Build temporary gh-pages worktree and replace gh-pages branch
+      - name: Replace gh-pages via worktree and push
         env:
           OUTPUT_PATH: lampster-norge-feed/norsk-feed.xml
           WORKTREE_DIR: ${{ runner.temp }}/ghpages
         run: |
           set -euo pipefail
-          echo "Preparing fresh gh-pages worktree at $WORKTREE_DIR"
-
-          # Clean up existing worktree if any
+          echo "Preparing gh-pages worktree at $WORKTREE_DIR"
           rm -rf "$WORKTREE_DIR"
-
-          # Ensure origin has latest branches
           git fetch origin --prune
 
-          # Create worktree for gh-pages branch (if branch exists, track it; if not, make empty)
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git worktree add -B gh-pages "$WORKTREE_DIR" origin/gh-pages
           else
-            # create new branch in worktree
             git worktree add -B gh-pages "$WORKTREE_DIR"
           fi
 
-          # Copy generated file into worktree
           if [ ! -f "$OUTPUT_PATH" ]; then
             echo "ERROR: Generated file missing at $OUTPUT_PATH"
             exit 1
           fi
 
           mkdir -p "$WORKTREE_DIR/lampster-norge-feed"
-          # Prefer origin/generated-feed version (guaranteed), fallback to local generated file
+          # Prefer origin/generated-feed copy if available
           if git ls-remote --heads origin generated-feed | grep -q generated-feed; then
             git show origin/generated-feed:lampster-norge-feed/norsk-feed.xml > "$WORKTREE_DIR/lampster-norge-feed/norsk-feed.xml" || cp "$OUTPUT_PATH" "$WORKTREE_DIR/lampster-norge-feed/norsk-feed.xml"
           else
             cp "$OUTPUT_PATH" "$WORKTREE_DIR/lampster-norge-feed/norsk-feed.xml"
           fi
 
-          # Commit & force-push the gh-pages branch from the worktree
           pushd "$WORKTREE_DIR" >/dev/null
           git add lampster-norge-feed/norsk-feed.xml
           if git diff --staged --quiet; then
-            echo "No changes to commit on gh-pages"
+            echo "No changes for gh-pages"
           else
             git commit -m "Auto-update norsk-feed.xml on gh-pages [ci skip]"
             git push --force origin gh-pages
             echo "✅ Pushed to gh-pages"
           fi
           popd >/dev/null
-
-          # clean up worktree
           git worktree remove "$WORKTREE_DIR" --force || true
+
+      - name: Commit copy to main (so it's visible in default branch)
+        env:
+          ROOT_OUTPUT: norsk-feed.xml
+        run: |
+          set -euo pipefail
+          if [ ! -f "norsk-feed.xml" ]; then
+            echo "No root copy found"
+            exit 1
+          fi
+          git fetch origin main:main || true
+          git checkout main || git checkout -B main
+          cp -f norsk-feed.xml lampster-norge-feed/norsk-feed.xml || true
+          git add norsk-feed.xml lampster-norge-feed/norsk-feed.xml
+          if git diff --staged --quiet; then
+            echo "No changes for main"
+          else
+            git commit -m "Auto-update norsk-feed.xml on main [ci skip]"
+            git push origin main
+            echo "✅ Pushed to main"
+          fi
