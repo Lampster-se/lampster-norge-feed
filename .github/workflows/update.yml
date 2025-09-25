@@ -8,7 +8,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repo
         uses: actions/checkout@v4
@@ -20,11 +19,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip
+          python -m pip install --upgrade pip
           pip install requests lxml
+
+      - name: Debug - show source URL (cache_bust uses current timestamp inside script)
+        run: echo "generate_feed.py will request the live Webnode feed with cache bust."
 
       - name: Generate norsk feed
         run: python generate_feed.py
+
+      - name: Show generated (head)
+        run: |
+          echo "---- head of generated feed ----"
+          head -n 60 lampster-norge-feed/norsk-feed.xml || true
+          echo "---- end head ----"
 
       - name: Publish to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
@@ -32,4 +40,4 @@ jobs:
           github_token: ${{ secrets.PERSONAL_TOKEN }}
           publish_dir: ./lampster-norge-feed
           publish_branch: gh-pages
-          keep_files: true
+          keep_files: false
