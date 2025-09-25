@@ -1,51 +1,112 @@
-name: Update norsk-feed.xml
+name: Update Norwegian Feed
 
 on:
   schedule:
-    - cron: "0 */6 * * *"   # var 6:e timme
+    - cron: '0 * * * *'   # kör varje timme
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  update-feed:
+  generate:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          persist-credentials: true
           fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.x"
+          python-version: '3.11'
 
-      - name: Install deps
-        run: pip install requests lxml
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests lxml
 
-      - name: Generate feed
+      - name: Run feed generator
         run: python generate_feed.py
 
-      - name: Commit to generated-feed
+      - name: Configure git identity
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -B generated-feed
-          git add lampster-norge-feed/norsk-feed.xml
-          git commit -m "Auto-update norsk-feed.xml [ci skip]" || echo "No changes"
-          git push origin generated-feed --force
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit to gh-pages
-        run: |
-          git fetch origin gh-pages || true
-          git checkout gh-pages || git checkout -b gh-pages
-          cp lampster-norge-feed/norsk-feed.xml ./norsk-feed.xml
-          git add norsk-feed.xml
-          git commit -m "Auto-update norsk-feed.xml on gh-pages [ci skip]" || echo "No changes"
-          git push origin gh-pages
+      - name: Commit & push to generated-feed
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OUTPUT_PATH: lampster-norge-feed/norsk-feed.xml
+        run: |
+          set -euo pipefail
+          if [ ! -f "$OUTPUT_PATH" ]; then
+            echo "ERROR: Generated file not found: $OUTPUT_PATH"
+            exit 1
+          fi
+
+          git fetch origin
+          git checkout -B generated-feed
+
+          git add "$OUTPUT_PATH"
+          if git diff --staged --quiet; then
+            echo "No changes to commit on generated-feed"
+          else
+            git commit -m "Auto-update norsk-feed.xml [ci skip]"
+            git push --force origin generated-feed
+            echo "✅ Pushed to generated-feed"
+          fi
+
+      - name: Build temporary gh-pages worktree and replace gh-pages branch
+        env:
+          OUTPUT_PATH: lampster-norge-feed/norsk-feed.xml
+          WORKTREE_DIR: ${{ runner.temp }}/ghpages
+        run: |
+          set -euo pipefail
+          echo "Preparing fresh gh-pages worktree at $WORKTREE_DIR"
+
+          # Clean up existing worktree if any
+          rm -rf "$WORKTREE_DIR"
+
+          # Ensure origin has latest branches
+          git fetch origin --prune
+
+          # Create worktree for gh-pages branch (if branch exists, track it; if not, make empty)
+          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            git worktree add -B gh-pages "$WORKTREE_DIR" origin/gh-pages
+          else
+            # create new branch in worktree
+            git worktree add -B gh-pages "$WORKTREE_DIR"
+          fi
+
+          # Copy generated file into worktree
+          if [ ! -f "$OUTPUT_PATH" ]; then
+            echo "ERROR: Generated file missing at $OUTPUT_PATH"
+            exit 1
+          fi
+
+          mkdir -p "$WORKTREE_DIR/lampster-norge-feed"
+          # Prefer origin/generated-feed version (guaranteed), fallback to local generated file
+          if git ls-remote --heads origin generated-feed | grep -q generated-feed; then
+            git show origin/generated-feed:lampster-norge-feed/norsk-feed.xml > "$WORKTREE_DIR/lampster-norge-feed/norsk-feed.xml" || cp "$OUTPUT_PATH" "$WORKTREE_DIR/lampster-norge-feed/norsk-feed.xml"
+          else
+            cp "$OUTPUT_PATH" "$WORKTREE_DIR/lampster-norge-feed/norsk-feed.xml"
+          fi
+
+          # Commit & force-push the gh-pages branch from the worktree
+          pushd "$WORKTREE_DIR" >/dev/null
+          git add lampster-norge-feed/norsk-feed.xml
+          if git diff --staged --quiet; then
+            echo "No changes to commit on gh-pages"
+          else
+            git commit -m "Auto-update norsk-feed.xml on gh-pages [ci skip]"
+            git push --force origin gh-pages
+            echo "✅ Pushed to gh-pages"
+          fi
+          popd >/dev/null
+
+          # clean up worktree
+          git worktree remove "$WORKTREE_DIR" --force || true
