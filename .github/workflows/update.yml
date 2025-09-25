@@ -32,16 +32,20 @@ jobs:
       - name: Run feed generator
         run: python generate_feed.py
 
-      - name: Prepare generated branch & commit if changed
+      - name: Commit & push to generated-feed and gh-pages (if changed)
         env:
           OUTPUT_FILE: lampster-norge-feed/norsk-feed.xml
         run: |
-          set -e
+          set -euo pipefail
+
+          # prepare git identity
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          # --- push to generated-feed branch (history) ---
           git fetch origin
-          # create/update local generated branch from current HEAD (safe)
           git checkout -B generated-feed
 
-          # Add output file (if it exists)
           if [ -f "$OUTPUT_FILE" ]; then
             git add "$OUTPUT_FILE"
           else
@@ -49,15 +53,37 @@ jobs:
             exit 0
           fi
 
-          # If nothing staged, exit
-          if [ -z "$(git status --porcelain)" ]; then
-            echo "No changes to commit"
-            exit 0
+          if git diff --staged --quiet; then
+            echo "No changes to commit on generated-feed"
+          else
+            git commit -m "Auto-update norsk-feed.xml [ci skip]"
+            git push --force origin generated-feed
+            echo "Pushed to generated-feed"
           fi
 
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
+          # --- push to gh-pages (for GitHub Pages) ---
+          # ensure we know if gh-pages exists on remote
+          if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
+            git fetch origin gh-pages:gh-pages
+            git checkout gh-pages
+          else
+            # create orphan branch
+            git checkout --orphan gh-pages
+            # remove all files from index/worktree
+            git rm -rf --ignore-unmatch .
+            # ensure directory exists
+            mkdir -p lampster-norge-feed
+          fi
 
-          git commit -m "Auto-update norsk-feed.xml [ci skip]"
-          # Force push to generated-feed branch
-          git push --force origin generated-feed
+          # Copy generated file into gh-pages branch (same path)
+          mkdir -p lampster-norge-feed
+          cp -f lampster-norge-feed/norsk-feed.xml lampster-norge-feed/norsk-feed.xml
+          git add lampster-norge-feed/norsk-feed.xml
+
+          if git diff --staged --quiet; then
+            echo "No changes to commit on gh-pages"
+          else
+            git commit -m "Auto-update norske feed on gh-pages [ci skip]"
+            git push --force origin gh-pages
+            echo "Pushed to gh-pages"
+          fi
