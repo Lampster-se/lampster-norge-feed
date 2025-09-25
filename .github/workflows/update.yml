@@ -2,7 +2,7 @@ name: Update Norwegian Feed
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '0 * * * *'   # kör varje timme
   workflow_dispatch:
 
 permissions:
@@ -29,10 +29,35 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests lxml
 
-      - name: Configure git user
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "actions@github.com"
-
       - name: Run feed generator
         run: python generate_feed.py
+
+      - name: Prepare generated branch & commit if changed
+        env:
+          OUTPUT_FILE: lampster-norge-feed/norsk-feed.xml
+        run: |
+          set -e
+          git fetch origin
+          # create/update local generated branch from current HEAD (safe)
+          git checkout -B generated-feed
+
+          # Add output file (if it exists)
+          if [ -f "$OUTPUT_FILE" ]; then
+            git add "$OUTPUT_FILE"
+          else
+            echo "No generated file found at $OUTPUT_FILE"
+            exit 0
+          fi
+
+          # If nothing staged, exit
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git commit -m "Auto-update norsk-feed.xml [ci skip]"
+          # Force push to generated-feed branch
+          git push --force origin generated-feed
