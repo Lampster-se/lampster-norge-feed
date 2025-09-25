@@ -1,37 +1,48 @@
-name: Update norsk feed
+name: Generera norsk feed
 
 on:
-  workflow_dispatch:
+  push:
+    branches: [ main ]
+  workflow_dispatch: {}
   schedule:
-    - cron: "0 */6 * * *" # var 6:e timme
+    - cron: '0 3 * * *'  # kör dagligen kl 03:00 (valfritt)
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-      - name: Install dependencies
-        run: pip install requests lxml
+    - name: Install dependencies
+      run: |
+        pip install requests
 
-      - name: Generate feed
-        run: python generate_feed.py
+    - name: Generate feed
+      run: python generate_feed.py
 
-      - name: Push to gh-pages
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git fetch origin gh-pages || true
-          git checkout gh-pages || git checkout --orphan gh-pages
-          cp build/norsk-feed.xml norsk-feed.xml
-          git add norsk-feed.xml
-          git commit -m "Auto-update norsk-feed.xml on gh-pages [ci skip]" || echo "No changes"
-          git push origin gh-pages
+    - name: Configure Git
+      run: |
+        git config --local user.name "github-actions[bot]"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+
+    - name: Publish to gh-pages
+      run: |
+        # Hämta gh-pages och checkout (skapa den om den saknas)
+        git fetch origin gh-pages:gh-pages || true
+        git checkout gh-pages || git checkout --orphan gh-pages
+        # Ta bort alla gamla filer (om några finns)
+        git rm -rf . || true
+        # Kopiera över ny fil
+        cp ../norsk-feed.xml ./norsk-feed.xml
+        git add norsk-feed.xml
+        git commit -m "Uppdatera norsk-feed.xml"
+        git push origin gh-pages --force
