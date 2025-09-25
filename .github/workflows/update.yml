@@ -1,9 +1,9 @@
-name: Generate Feed
+name: Generate RSS Feed
 
 on:
-  workflow_dispatch:   # Manuell trigger
+  workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'  # Kör varje dag kl 08:00
+    - cron: '0 8 * * *'
 
 jobs:
   build:
@@ -24,7 +24,7 @@ jobs:
       - name: Run feed generator
         run: python generate_feed.py
 
-      - name: Upload feed artifact
+      - name: Upload feed
         uses: actions/upload-artifact@v3
         with:
           name: feed
