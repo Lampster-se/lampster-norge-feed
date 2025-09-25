@@ -1,31 +1,31 @@
-name: Generate RSS Feed
+name: Generate Feed
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'  # körs varje dag kl 08:00 UTC
+    - cron: "0 0 * * *"  # Kör varje dag kl 00:00
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: "3.12"
 
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run feed generator
+      - name: Run feed script
         run: python generate_feed.py
 
       - name: Upload feed
         uses: actions/upload-artifact@v4
         with:
-          name: feed
-          path: feed_output.xml
+          name: feed-xml
+          path: feed.xml
