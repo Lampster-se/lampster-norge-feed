@@ -1,35 +1,31 @@
-name: Update norsk feed
+name: Generate Feed
 
 on:
+  workflow_dispatch:   # Manuell trigger
   schedule:
-    - cron: "0 */3 * * *"   # kör var 3:e timme
-  workflow_dispatch:        # manuell körning
+    - cron: '0 8 * * *'  # Kör varje dag kl 08:00
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out repo
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
-          python-version: "3.x"
+          python-version: '3.11'
 
       - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install requests lxml
+        run: pip install requests
 
-      - name: Generate norsk feed
+      - name: Run feed generator
         run: python generate_feed.py
 
-      - name: Publish to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload feed artifact
+        uses: actions/upload-artifact@v3
         with:
-          github_token: ${{ secrets.PERSONAL_TOKEN }}
-          publish_dir: ./lampster-norge-feed
-          publish_branch: gh-pages
-          keep_files: true
+          name: feed
+          path: feed_output.xml
