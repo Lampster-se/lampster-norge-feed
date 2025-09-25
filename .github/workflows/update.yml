@@ -32,69 +32,60 @@ jobs:
       - name: Run feed generator
         run: python generate_feed.py
 
-      - name: Commit & push to generated-feed and gh-pages (if changed)
+      - name: Commit & push feed to all branches
         env:
           OUTPUT_FILE: lampster-norge-feed/norsk-feed.xml
         run: |
           set -euo pipefail
-
-          # configure git identity
           git config user.name "github-actions"
           git config user.email "actions@github.com"
 
-          # --- push to generated-feed branch (history) ---
-          git fetch origin
-          git checkout -B generated-feed
-
-          if [ -f "$OUTPUT_FILE" ]; then
-            git add "$OUTPUT_FILE"
-          else
-            echo "No generated file found at $OUTPUT_FILE"
-            exit 0
+          if [ ! -f "$OUTPUT_FILE" ]; then
+            echo "No generated file found!"
+            exit 1
           fi
 
+          # --- generated-feed branch ---
+          git fetch origin
+          git checkout -B generated-feed
+          git add "$OUTPUT_FILE"
           if git diff --staged --quiet; then
-            echo "No changes to commit on generated-feed"
+            echo "No changes for generated-feed"
           else
             git commit -m "Auto-update norsk-feed.xml [ci skip]"
             git push --force origin generated-feed
-            echo "Pushed to generated-feed"
+            echo "✅ Pushed to generated-feed"
           fi
 
-          # --- push to gh-pages (for GitHub Pages) ---
-          # Ensure gh-pages exists on remote
+          # --- gh-pages branch ---
           if git ls-remote --heads origin gh-pages | grep -q gh-pages; then
             git fetch origin gh-pages:gh-pages
             git checkout gh-pages
           else
-            # create orphan branch locally (no history)
             git checkout --orphan gh-pages
             git rm -rf --ignore-unmatch .
             mkdir -p lampster-norge-feed
           fi
 
-          # Write file into gh-pages branch by reading it from generated-feed branch
-          # (this avoids issues where switching branch removes the generated file)
-          mkdir -p lampster-norge-feed
-          # Use origin/generated-feed if present, else local generated-feed
-          if git ls-remote --heads origin generated-feed | grep -q generated-feed; then
-            git show origin/generated-feed:lampster-norge-feed/norsk-feed.xml > lampster-norge-feed/norsk-feed.xml || true
-          else
-            # fallback to local branch (if just committed)
-            git show generated-feed:lampster-norge-feed/norsk-feed.xml > lampster-norge-feed/norsk-feed.xml || true
-          fi
-
-          if [ ! -f lampster-norge-feed/norsk-feed.xml ]; then
-            echo "ERROR: could not retrieve generated file into gh-pages branch"
-            exit 1
-          fi
-
+          cp "$OUTPUT_FILE" lampster-norge-feed/norsk-feed.xml
           git add lampster-norge-feed/norsk-feed.xml
-
           if git diff --staged --quiet; then
-            echo "No changes to commit on gh-pages"
+            echo "No changes for gh-pages"
           else
-            git commit -m "Auto-update norske feed on gh-pages [ci skip]"
+            git commit -m "Auto-update norsk-feed.xml on gh-pages [ci skip]"
             git push --force origin gh-pages
-            echo "Pushed to gh-pages"
+            echo "✅ Pushed to gh-pages"
+          fi
+
+          # --- main branch (så filen syns där också) ---
+          git fetch origin main:main
+          git checkout main
+          cp "$OUTPUT_FILE" lampster-norge-feed/norsk-feed.xml
+          git add lampster-norge-feed/norsk-feed.xml
+          if git diff --staged --quiet; then
+            echo "No changes for main"
+          else
+            git commit -m "Auto-update norsk-feed.xml on main [ci skip]"
+            git push origin main
+            echo "✅ Pushed to main"
           fi
