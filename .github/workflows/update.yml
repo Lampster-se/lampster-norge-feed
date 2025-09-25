@@ -3,7 +3,7 @@ name: Generate Feed
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"  # Kör varje dag kl 00:00
+    - cron: "0 0 * * *"  # varje dag kl 00:00
 
 jobs:
   build:
