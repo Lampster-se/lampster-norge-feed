@@ -1,16 +1,16 @@
-name: Generate Norsk Feed
+name: Generate Norwegian Feed
 
 on:
   schedule:
-    - cron: '0 * * * *' # kör varje timme
-  workflow_dispatch:
+    - cron: '0 * * * *'   # varje timme
+  workflow_dispatch: {}    # manuell trigger
 
 jobs:
-  build-feed:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v4
         with:
           persist-credentials: true
@@ -18,7 +18,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.11
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -27,5 +27,3 @@ jobs:
 
       - name: Run feed generator
         run: python generate_feed.py
-    print("[warn] Ingen 'norsk' produkt hittades.")
-sys.exit(0)
