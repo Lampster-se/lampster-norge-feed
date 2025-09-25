@@ -4,7 +4,7 @@ generate_feed.py
 
 Hämtar live-feed från Webnode, filtrerar produkter med kategori 'norsk',
 konverterar SEK -> NOK (1.3375), lägger till fraktinfo och skriver
-norsk-feed.xml i repo-rooten.
+build/norsk-feed.xml (inte direkt i repo-rooten).
 """
 
 from __future__ import annotations
@@ -15,7 +15,8 @@ import os, time, re, tempfile, shutil, sys
 
 # ---------- KONFIG ----------
 SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
-OUTPUT_FILE = "norsk-feed.xml"
+OUTPUT_DIR = "build"
+OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 
 CONVERSION_RATE = Decimal("1.3375")   # SEK -> NOK
 STANDARD_SEK_SHIPPING = Decimal("99")
@@ -27,7 +28,7 @@ FETCH_DELAY_SECONDS = 2
 G_NS = "http://base.google.com/ns/1.0"
 ns = {"g": G_NS}
 
-# ---------- HJÄLP ----------
+# ---------- HELPERS ----------
 def safe_decimal_from_str(s: str | None) -> Decimal | None:
     if not s:
         return None
@@ -56,7 +57,10 @@ def find_child_text(item: ET._Element, localname: str, nsmap) -> str | None:
                 return c.text.strip()
     return None
 
-# ---------- hämta feed ----------
+# ---------- skapa output dir ----------
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# ---------- fetch ----------
 session = requests.Session()
 headers = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -95,7 +99,7 @@ except Exception as e:
     print(f"[error] XML parse error: {e}", file=sys.stderr)
     sys.exit(1)
 
-# ---------- build output RSS ----------
+# ---------- build new RSS ----------
 rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
 channel = ET.SubElement(rss, "channel")
 
@@ -141,7 +145,6 @@ for item in items:
             continue
         ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = val if val else "N/A"
 
-    # shipping block for Norway
     shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
     ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
@@ -152,7 +155,6 @@ for item in items:
     shipping_price = Decimal("0.00") if price_val >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
     ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
 
-    # handling and transit times
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
@@ -161,7 +163,7 @@ for item in items:
 print(f"[info] Included norsk products: {included_count}")
 
 # ---------- write atomiskt ----------
-tmp_fd, tmp_path = tempfile.mkstemp(suffix=".xml", prefix="norsk-feed-")
+tmp_fd, tmp_path = tempfile.mkstemp(suffix=".xml", prefix="norsk-feed-", dir=OUTPUT_DIR)
 os.close(tmp_fd)
 tree_out = ET.ElementTree(rss)
 try:
