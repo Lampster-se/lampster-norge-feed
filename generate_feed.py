@@ -4,8 +4,8 @@ from decimal import Decimal, ROUND_HALF_UP
 import os
 import time
 
-# Live-feed med cache-bust så GitHub Actions alltid hämtar senaste version
-SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cache_bust={int(time.time())}"
+# Webnode live-feed med cache-bust (för att inte fastna i gammal cache)
+SOURCE_URL = f"https://www.lampster.se/rss/pf-google_nok-no.xml?cb={int(time.time())}"
 OUTPUT_DIR = "lampster-norge-feed"
 OUTPUT_FILE = os.path.join(OUTPUT_DIR, "norsk-feed.xml")
 
@@ -16,6 +16,7 @@ FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Hämta feed
+print(f"Hämtar feed från {SOURCE_URL}")
 resp = requests.get(SOURCE_URL)
 resp.raise_for_status()
 
@@ -34,7 +35,10 @@ for tag in ["title", "link", "description"]:
     if elem is not None and elem.text:
         ET.SubElement(channel, tag).text = elem.text
 
-NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+# Konverterad standardfrakt
+NOK_STANDARD_SHIPPING = (Decimal(STANDARD_SEK_SHIPPING) * CONVERSION_RATE).quantize(
+    Decimal("0.01"), rounding=ROUND_HALF_UP
+)
 
 count_added = 0
 for item in orig_channel.findall("item"):
@@ -53,9 +57,12 @@ for item in orig_channel.findall("item"):
         if tag == "price" and text:
             try:
                 value, currency = text.split()
-                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                nok_value = (Decimal(value) * CONVERSION_RATE).quantize(
+                    Decimal("0.01"), rounding=ROUND_HALF_UP
+                )
                 text = f"{nok_value:.2f} NOK"
-            except:
+            except Exception as e:
+                print(f"Fel vid pris-konvertering för {elem.text}: {e}")
                 text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
         elif tag == "price":
             text = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
@@ -74,12 +81,13 @@ for item in orig_channel.findall("item"):
 
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
-
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_transit_time").text = "9"
 
     count_added += 1
 
+# Skriv ut resultat
 tree_out = ET.ElementTree(rss)
 tree_out.write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
+
 print(f"Klar! {count_added} produkter sparade i {OUTPUT_FILE}")
