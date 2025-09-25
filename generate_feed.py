@@ -1,42 +1,49 @@
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime
+import os
 
-URL = "https://www.lampster.se/rss/pf-google_nok-no.xml"
-OUTPUT_FILE = "feed_output.xml"
+# URL till JSON eller API som ger produkterna
+API_URL = "https://dinkalla.shop/api/products"
 
-def fetch_feed(url):
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.text
+def fetch_products():
+    try:
+        resp = requests.get(API_URL)
+        resp.raise_for_status()
+        data = resp.json()
+        print(f"Hämtade {len(data)} produkter totalt från API")
+        return data
+    except Exception as e:
+        print(f"Fel vid hämtning av produkter: {e}")
+        return []
 
-def parse_feed(xml_content):
-    root = ET.fromstring(xml_content)
-    items = []
-
-    for item in root.findall(".//item"):
-        title = item.findtext("title", default="")
-        link = item.findtext("link", default="")
-        pubDate = item.findtext("pubDate", default=datetime.now().isoformat())
-        items.append({"title": title, "link": link, "pubDate": pubDate})
-
-    return items
-
-def save_feed(items, filename):
-    root = ET.Element("rss", version="2.0")
-    channel = ET.SubElement(root, "channel")
-
-    for item in items:
-        item_elem = ET.SubElement(channel, "item")
-        ET.SubElement(item_elem, "title").text = item["title"]
-        ET.SubElement(item_elem, "link").text = item["link"]
-        ET.SubElement(item_elem, "pubDate").text = item["pubDate"]
+def generate_xml(products):
+    root = ET.Element("products")
+    for p in products:
+        # Lägg till debug utskrift
+        print(f"Bearbetar produkt: {p.get('name')} ({p.get('id')})")
+        
+        product_el = ET.SubElement(root, "product")
+        ET.SubElement(product_el, "id").text = str(p.get("id"))
+        ET.SubElement(product_el, "name").text = p.get("name", "")
+        ET.SubElement(product_el, "price").text = str(p.get("price", ""))
+        ET.SubElement(product_el, "availability").text = p.get("availability", "")
+        ET.SubElement(product_el, "url").text = p.get("url", "")
+        ET.SubElement(product_el, "image").text = p.get("image", "")
+        
+        # Lägg till datum (för test)
+        ET.SubElement(product_el, "date_added").text = p.get("date_added", datetime.now().isoformat())
 
     tree = ET.ElementTree(root)
-    tree.write(filename, encoding="utf-8", xml_declaration=True)
+    output_file = "feed.xml"
+    tree.write(output_file, encoding="utf-8", xml_declaration=True)
+    print(f"XML-fil genererad: {output_file} ({len(products)} produkter)")
+
+def main():
+    products = fetch_products()
+    if not products:
+        print("Inga produkter hämtade, skapar tom XML ändå.")
+    generate_xml(products)
 
 if __name__ == "__main__":
-    xml_data = fetch_feed(URL)
-    items = parse_feed(xml_data)
-    save_feed(items, OUTPUT_FILE)
-    print(f"Feed generated with {len(items)} items and saved to {OUTPUT_FILE}.")
+    main()
