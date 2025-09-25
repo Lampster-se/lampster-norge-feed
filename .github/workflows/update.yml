@@ -25,13 +25,13 @@ jobs:
       - name: Generate feed
         run: python generate_feed.py
 
-      - name: Commit and push to gh-pages
+      - name: Push to gh-pages
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin gh-pages || true
           git checkout gh-pages || git checkout --orphan gh-pages
-          cp norsk-feed.xml ./norsk-feed.xml
+          cp build/norsk-feed.xml norsk-feed.xml
           git add norsk-feed.xml
           git commit -m "Auto-update norsk-feed.xml on gh-pages [ci skip]" || echo "No changes"
           git push origin gh-pages
