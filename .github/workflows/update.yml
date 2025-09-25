@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true # viktigt för push
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -25,9 +27,3 @@ jobs:
 
       - name: Run feed generator
         run: python generate_feed.py
-
-      - name: Upload feed artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: norsk-feed
-          path: lampster-norge-feed/norsk-feed.xml
