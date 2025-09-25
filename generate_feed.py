@@ -5,7 +5,7 @@ generate_feed.py
 Hämtar live-feed från Webnode, filtrerar produkter med kategori 'norsk',
 konverterar SEK -> NOK (1.3375), lägger till fraktinfo och skriver
 lampster-norge-feed/norsk-feed.xml atomiskt.
-Skriptet gör *bara* filgenereringen (ingen git/push här) — git hanteras i workflow.
+Skriptet gör ENDAST filgenereringen (ingen git/push här).
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ import requests
 import lxml.etree as ET
 from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
 import os, time, re, tempfile, shutil, sys
+from datetime import datetime
 
 # ---------- KONFIG ----------
 SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
@@ -61,7 +62,7 @@ def find_child_text(item: ET._Element, localname: str, nsmap) -> str | None:
 # ---------- skapa dir ----------
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ---------- hämta feed ----------
+# ---------- hämta feed (cache-bust) ----------
 session = requests.Session()
 headers = {
     "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -109,10 +110,15 @@ if orig_channel is None:
     print("[error] Source feed has no <channel>", file=sys.stderr)
     sys.exit(1)
 
+# Kopiera title/link/description
 for tag in ("title", "link", "description"):
     t = orig_channel.find(tag)
     if t is not None and t.text:
         ET.SubElement(channel, tag).text = t.text
+
+# Lägg in lastBuildDate (UTC)
+now_str = datetime.utcnow().strftime("%a, %d %b %Y %H:%M:%S +0000")
+ET.SubElement(channel, "lastBuildDate").text = now_str
 
 items = orig_channel.findall("item")
 print(f"[info] Source items: {len(items)}")
@@ -160,7 +166,7 @@ for item in items:
     shipping_price = Decimal("0.00") if price_val >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
     ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
 
-    # handling/transit times
+    # handling/transit times (arbetsdagar)
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_handling_time").text = "0"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}max_handling_time").text = "1"
     ET.SubElement(shipping_elem, f"{{{G_NS}}}min_transit_time").text = "1"
@@ -174,6 +180,7 @@ os.close(tmp_fd)
 tree_out = ET.ElementTree(rss)
 try:
     tree_out.write(tmp_path, encoding="utf-8", xml_declaration=True, pretty_print=True)
+    # move into place
     shutil.move(tmp_path, OUTPUT_FILE)
     print(f"[ok] Wrote {OUTPUT_FILE}")
 except Exception as e:
