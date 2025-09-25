@@ -2,8 +2,8 @@ name: Update norsk feed
 
 on:
   schedule:
-    - cron: "0 * * * *"   # Kör varje timme
-  workflow_dispatch:      # Kan köras manuellt
+    - cron: "0 * * * *"   # kör varje timme
+  workflow_dispatch:      # kan köras manuellt
 
 jobs:
   build:
@@ -22,9 +22,6 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install requests lxml
-
-      - name: Remove cached feed
-        run: rm -f ./lampster-norge-feed/norsk-feed.xml
 
       - name: Generate norsk feed
         run: python generate_feed.py
