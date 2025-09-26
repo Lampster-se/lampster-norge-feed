@@ -1,88 +1,145 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""
+generate_feed.py
 
-import time
-import re
+Hämtar live-feed från Webnode, filtrerar produkter med kategori 'norsk',
+konverterar SEK -> NOK, lägger till fraktinfo och skriver ut
+norsk-feed.xml i repo-roten (main). Workflow pushar filen till gh-pages.
+"""
+
+from __future__ import annotations
 import requests
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
-from pathlib import Path
+import lxml.etree as ET
+from decimal import Decimal, ROUND_HALF_UP, InvalidOperation
+import os, time, re, sys
 
-# Skapa build-katalog för output
-output_dir = Path("build")
-output_dir.mkdir(exist_ok=True)
+# ---------- KONFIG ----------
+SOURCE_BASE = "https://www.lampster.se/rss/pf-google_nok-no.xml"
+OUTPUT_FILE = "norsk-feed.xml"
 
-# 1. Hämta RSS-flödet (med cache-busting)
-url = "https://www.lampster.se/rss/pf-google_nok-no.xml"
-params = {"t": str(int(time.time()))}
-response = requests.get(url, params=params, headers={"Cache-Control": "no-cache"})
-response.raise_for_status()
-rss_text = response.content
+CONVERSION_RATE = Decimal("1.3375")   # SEK -> NOK
+STANDARD_SEK_SHIPPING = Decimal("99")
+FREE_SHIPPING_THRESHOLD = Decimal("735.00")  # NOK
 
-# 2. Parse original RSS
-root = ET.fromstring(rss_text)
+FETCH_ATTEMPTS = 5
+FETCH_DELAY_SECONDS = 2
 
-# 3. Skapa nytt RSS-träd
-ET.register_namespace('g', 'http://base.google.com/ns/1.0')
-newrss = ET.Element('rss', {"version": "2.0", "xmlns:g": "http://base.google.com/ns/1.0"})
-channel = ET.SubElement(newrss, 'channel')
-ET.SubElement(channel, 'title').text = 'Lampster Norge - Norsk produktfeed'
-ET.SubElement(channel, 'link').text = 'https://www.lampster.se'
-ET.SubElement(channel, 'description').text = 'Produktfeed för Lampster Norge (Google Merchant).'
+G_NS = "http://base.google.com/ns/1.0"
+ns = {"g": G_NS}
 
-# 4. Iterera produkter
-for item in root.findall('.//item'):
-    prod_type = (item.findtext('product_type') or '').lower()
-    google_cat = (item.findtext('google_product_category') or '').lower()
-    if 'norsk' not in prod_type and 'norsk' not in google_cat:
+
+def safe_decimal_from_str(s: str | None) -> Decimal | None:
+    if not s:
+        return None
+    m = re.search(r"[-+]?[0-9\.,]+", s)
+    if not m:
+        return None
+    num = m.group(0).replace(",", ".")
+    try:
+        return Decimal(num)
+    except InvalidOperation:
+        return None
+
+
+def find_child_text(item: ET._Element, localname: str, nsmap) -> str | None:
+    try:
+        e = item.find(f"g:{localname}", nsmap)
+    except Exception:
+        e = None
+    if e is not None and e.text:
+        return e.text.strip()
+    e = item.find(localname)
+    if e is not None and e.text:
+        return e.text.strip()
+    for c in item:
+        if isinstance(c.tag, str) and c.tag.endswith(localname):
+            if c.text:
+                return c.text.strip()
+    return None
+
+
+# ---------- hämta feed ----------
+session = requests.Session()
+headers = {"User-Agent": "feed-updater/1.0 (+lampster)"}
+
+resp = None
+for attempt in range(1, FETCH_ATTEMPTS + 1):
+    cb = int(time.time())
+    url = f"{SOURCE_BASE}?cb={cb}"
+    print(f"[fetch] Attempt {attempt}/{FETCH_ATTEMPTS} -> {url}")
+    try:
+        r = session.get(url, headers=headers, timeout=30)
+        r.raise_for_status()
+        if "<item" in r.text:
+            resp = r
+            print("[fetch] OK - feed appears to contain items")
+            break
+    except Exception as e:
+        print(f"[fetch] Error: {e}")
+    time.sleep(FETCH_DELAY_SECONDS)
+
+if resp is None:
+    print("[error] Could not fetch feed after retries", file=sys.stderr)
+    sys.exit(1)
+
+# ---------- parse ----------
+parser = ET.XMLParser(recover=True)
+tree = ET.fromstring(resp.content, parser=parser)
+
+rss = ET.Element("rss", version="2.0", nsmap={"g": G_NS})
+channel = ET.SubElement(rss, "channel")
+
+orig_channel = tree.find("channel")
+for tag in ("title", "link", "description"):
+    t = orig_channel.find(tag)
+    if t is not None and t.text:
+        ET.SubElement(channel, tag).text = t.text
+
+items = orig_channel.findall("item")
+print(f"[info] Source items: {len(items)}")
+
+included_count = 0
+NOK_STANDARD_SHIPPING = (STANDARD_SEK_SHIPPING * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+for item in items:
+    product_type_text = (find_child_text(item, "product_type", ns) or "")
+    google_cat_text = (find_child_text(item, "google_product_category", ns) or "")
+    combined = (product_type_text + " " + google_cat_text).lower()
+    if "norsk" not in combined:
         continue
 
-    prod_id   = (item.findtext('id') or '').strip()
-    title     = (item.findtext('title') or '').strip()
-    desc      = (item.findtext('description') or '').strip()
-    link      = (item.findtext('link') or '').strip()
-    image     = (item.findtext('image_link') or item.findtext('image_url') or '').strip()
-    condition = (item.findtext('condition') or '').strip()
-    availability = (item.findtext('availability') or '').strip()
-    price_text = (item.findtext('price') or '0').strip()
-    price_num = float(re.sub(r'[^\d,\.]', '', price_text).replace(',', '.')) if price_text else 0.0
-    price_nok = price_num * 1.3375
+    included_count += 1
+    new_item = ET.SubElement(channel, "item")
 
-    if price_nok > 735:
-        shipping_nok = 0.00
-    else:
-        shipping_nok = 99.00 * 1.3375
+    for tag in ("id", "title", "description", "link", "image_link", "availability", "product_type", "price"):
+        val = find_child_text(item, tag, ns)
+        if tag == "price":
+            if val:
+                d = safe_decimal_from_str(val)
+                if d is not None:
+                    nok = (d * CONVERSION_RATE).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+                    out_val = f"{nok:.2f} NOK"
+                else:
+                    out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
+            else:
+                out_val = f"{NOK_STANDARD_SHIPPING:.2f} NOK"
+            ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = out_val
+            continue
+        ET.SubElement(new_item, f"{{{G_NS}}}{tag}").text = val if val else "N/A"
 
-    new_item = ET.SubElement(channel, 'item')
-    ET.SubElement(new_item, '{http://base.google.com/ns/1.0}id').text = prod_id
-    ET.SubElement(new_item, '{http://base.google.com/ns/1.0}title').text = title
-    ET.SubElement(new_item, '{http://base.google.com/ns/1.0}description').text = desc
-    ET.SubElement(new_item, '{http://base.google.com/ns/1.0}link').text = link
-    if image:
-        ET.SubElement(new_item, '{http://base.google.com/ns/1.0}image_link').text = image
-    if condition:
-        ET.SubElement(new_item, '{http://base.google.com/ns/1.0}condition').text = condition
-    if availability:
-        ET.SubElement(new_item, '{http://base.google.com/ns/1.0}availability').text = availability
-    ET.SubElement(new_item, '{http://base.google.com/ns/1.0}price').text = f"{price_nok:.2f} NOK"
+    # shipping
+    shipping_elem = ET.SubElement(new_item, f"{{{G_NS}}}shipping")
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}country").text = "NO"
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}service").text = "Standard"
 
-    shipping = ET.SubElement(new_item, '{http://base.google.com/ns/1.0}shipping')
-    ET.SubElement(shipping, '{http://base.google.com/ns/1.0}country').text = 'NO'
-    ET.SubElement(shipping, '{http://base.google.com/ns/1.0}service').text = 'Standard'
-    ET.SubElement(shipping, '{http://base.google.com/ns/1.0}price').text = f"{shipping_nok:.2f} NOK"
+    price_text = find_child_text(new_item, "price", ns) or "0"
+    p = safe_decimal_from_str(price_text)
+    price_val = p if p is not None else Decimal("0.00")
+    shipping_price = Decimal("0.00") if price_val >= FREE_SHIPPING_THRESHOLD else NOK_STANDARD_SHIPPING
+    ET.SubElement(shipping_elem, f"{{{G_NS}}}price").text = f"{shipping_price:.2f} NOK"
 
-    if prod_type:
-        ET.SubElement(new_item, '{http://base.google.com/ns/1.0}product_type').text = prod_type
-    if google_cat:
-        ET.SubElement(new_item, '{http://base.google.com/ns/1.0}google_product_category').text = google_cat
+print(f"[info] Included norsk products: {included_count}")
 
-# 5. Skriv ut
-raw_xml = ET.tostring(newrss, encoding='utf-8')
-parsed = minidom.parseString(raw_xml)
-pretty_xml = parsed.toprettyxml(indent="  ", encoding='utf-8')
-
-out_file = output_dir / "norsk-feed.xml"
-with open(out_file, 'wb') as f:
-    f.write(pretty_xml)
-
-print(f"✅ Skapade {out_file}")
+# ---------- skriv ----------
+ET.ElementTree(rss).write(OUTPUT_FILE, encoding="utf-8", xml_declaration=True, pretty_print=True)
+print(f"[ok] Wrote {OUTPUT_FILE}")
