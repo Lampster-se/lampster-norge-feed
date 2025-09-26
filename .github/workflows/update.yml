@@ -1,51 +1,36 @@
-name: Generera norsk feed
+name: Generate norsk feed
 
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '0 3 * * *'
+    - cron: "0 */6 * * *"  # kör var 6:e timme
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-    - name: Install dependencies
-      run: pip install requests
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests lxml
 
-    - name: Generate feed
-      run: python generate_feed.py
+      - name: Generate norsk feed
+        run: python generate_feed.py
 
-    - name: Publish to gh-pages
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-
-        # Byt till gh-pages (eller skapa om den inte finns)
-        git fetch origin gh-pages || true
-        git checkout gh-pages || git checkout --orphan gh-pages
-
-        # Ta bort gamla filer
-        git rm -rf . || true
-
-        # Kopiera in ny feed från build/
-        cp build/norsk-feed.xml ./norsk-feed.xml
-
-        # Lägg till .nojekyll så att Pages inte bråkar
-        touch .nojekyll
-        git add norsk-feed.xml .nojekyll
-
-        git commit -m "Uppdatera norsk-feed.xml [ci skip]" || echo "Inga ändringar"
-        git push origin gh-pages --force
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GH_PAT }}
+          publish_branch: gh-pages
+          publish_dir: .
+          keep_files: true
